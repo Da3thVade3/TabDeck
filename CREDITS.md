@@ -18,6 +18,7 @@ TabDeck builds on the shoulders of the open-source community. Below is every ext
 - **[PyWinRT (`winrt-*`)](https://github.com/pywinrt/pywinrt)** — David Lechner & contributors — MIT License (Windows Global System Media Transport Controls / Now Playing)
 - **[psutil](https://github.com/giampaolo/psutil)** — Giampaolo Rodola — BSD-3-Clause License (CPU, RAM, battery, and active window process lookup)
 - **[pystray](https://github.com/moses-palmer/pystray)** — Moses Palmér — LGPL-3.0 License (Windows System Tray integration)
+- **[PyInstaller](https://github.com/pyinstaller/pyinstaller)** — PyInstaller Development Team — GPL-2.0 License with Bootloader Exception (Packaging standalone Windows release executable)
 
 ## Android Build & Device Tooling
 - **[Android SDK Platform Tools (`adb`)](https://developer.android.com/tools/releases/platform-tools)** & **[Android NDK](https://developer.android.com/ndk)** — Google / AOSP — Apache-2.0 License (USB port forwarding, Wireless Debugging pairing, and compiling the `arm64-v8a` Multi Control binary)

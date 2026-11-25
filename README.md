@@ -6,16 +6,100 @@
 
 ## Features
 
-- **Single Clickable Windows App (`TabDeck.exe`)** — Runs quietly in the Windows System Tray with auto-start on login, automatic USB ADB port forwarding, UDP LAN auto-discovery, and a one-click Windows Firewall setup helper.
+- **Single Clickable Windows App (`TabDeck.exe`)** — Standalone Windows release (no Python required) that runs quietly in the System Tray with auto-start on login, automatic USB ADB forwarding, UDP LAN auto-discovery, and a one-click Windows Firewall setup helper.
 - **Elgato Stream Deck-Style Macropad** — 5×4 customizable macro tile grid supporting hotkeys, apps, URLs, and Windows system actions.
 - **Now Playing + Per-App Windows Audio Mixer + Tablet Speaker** — Live Windows GSMTC media info & album art, master & per-app volume sliders/mutes, and 48 kHz low-latency WASAPI loopback PC-to-tablet audio streaming.
 - **Fullscreen Touchscreen + Native Windows Ink S-Pen** — Direct touch, relative trackpad, native Win32 `PT_PEN` Windows Ink (pressure, tilt, hover, barrel button, palm rejection, auto-hiding mouse cursor), floating Android keyboard typing bar (`⌨`), and a long-press movable corner toolbar.
+- **Living-Room Expanded Mouse Pad & Keyboard** — Tap **`⛶ Expand`** on the Mouse Pad for a dedicated full-screen couch controller: top-half trackpad + bottom default Android keyboard on phones, and left trackpad + right-side floating PC keyboard (plus 1-tap System KB toggle) on landscape tablets.
 - **Per-Screen Auto-Adaptive Quality** — Inspects the topmost visible app on *whichever monitor you are currently viewing*: sharp High-Res for Netflix/YouTube/Hotstar/VLC, high-FPS smoothness for OneNote/drawing apps & S-Pen, with separate USB and Wi-Fi profiles.
 - **Mirror Mode ↔ 3rd Screen (Extended Display)** — One-tap toggle between mirroring your physical monitors and extending Windows onto a native 2000×1200 virtual 3rd screen (via optional signed Virtual Display Driver).
-- **Multi-Device 2D Spatial Multi Control (Rooted & Unrooted Android!)** — Control your Android tablet *and* unrooted phone (e.g., Samsung Galaxy S24) natively with your laptop's physical mouse and keyboard:
+- **Multi-Device 2D Spatial Multi Control (Rooted & Unrooted Android)** — Control your Android tablet *and* unrooted phone (e.g., Samsung Galaxy S24) natively with your laptop's physical mouse and keyboard:
   - Visual **Drag-and-Drop Device Layout Studio** (`⧉ Devices` or Tray → *Arrange Devices*) with magnetic edge snapping and glowing crossing-edge portals.
-  - Works on **rooted Android** via `/dev/uinput` (auto-starts via Magisk) AND **unrooted Android 11–15+ phones** (like Samsung Galaxy S24) via `/dev/uhid` over Wireless Debugging or 3-second USB setup (no root required!).
+  - Works on **rooted Android** via `/dev/uinput` (auto-starts via Magisk) AND **unrooted Android 11–15+ phones** via `/dev/uhid` over Wireless Debugging or a 3-second USB deploy (no root required).
   - Instant toggle hotkey **`Ctrl + Alt + M`** (or **`ScrollLock`**) and emergency return **`Ctrl + Alt + Esc`**.
+
+---
+
+## Windows Installation Guide
+
+### Method A: Standalone App (Recommended — No Python Needed)
+
+1. **Download:** Go to the [Releases](https://github.com/Da3thVade3/TabDeck/releases) page and download **`TabDeck-Windows-v0.9.zip`**.
+2. **Extract the ZIP first:** Right-click `TabDeck-Windows-v0.9.zip` → **Extract All...** into a folder you want to keep (for example `C:\Apps\TabDeck`).
+   - *Important:* Do **not** double-click `TabDeck.exe` from inside the unextracted ZIP preview — extract it first so TabDeck can load `static/` and save your settings.
+3. **Launch `TabDeck.exe`:** Double-click **`TabDeck.exe`**.
+   - **If Windows SmartScreen shows *"Windows protected your PC"*:** Because TabDeck is a free, unsigned open-source app, Windows may show a one-time warning. Click **More info** → **Run anyway** *(or build it yourself from source below)*.
+4. **Find the System Tray Icon:** TabDeck runs silently in the background with no console window. Look for the **4-tile TabDeck icon** in the bottom-right Windows System Tray (click the **`^`** arrow next to the clock if it's tucked away).
+5. **Allow Wi-Fi Connections (1 Click):** Right-click the **TabDeck** tray icon → click **Enable Wi-Fi Access (Allow Firewall)** → click **Yes** on the Windows admin prompt.
+   - This adds firewall rules for **TCP `8765`** and **UDP `8766`** on all network profiles (including *Public* Wi-Fi) so your tablet and phone connect automatically over Wi-Fi.
+6. *(Optional)* **Auto-Start with Windows:** Right-click the tray icon → check **Start with Windows**.
+
+### Method B: Run From Source (Requires Python 3.11+)
+
+```powershell
+git clone https://github.com/Da3thVade3/TabDeck.git
+cd TabDeck
+```
+Then simply **double-click `TabDeck.exe`** — on first launch it automatically creates `.venv`, installs `requirements.txt`, and starts in the System Tray.
+
+To rebuild the standalone Windows ZIP yourself:
+```powershell
+.\.venv\Scripts\pip install pyinstaller
+.\launcher\build_windows_release.ps1 -Version 0.9
+```
+
+---
+
+## Android Installation Guide
+
+1. **Download an APK from [Releases](https://github.com/Da3thVade3/TabDeck/releases):**
+   - **`TabDeck-release.apk` (~29 KB)** — Lean production build for daily use on tablets and phones.
+   - **`TabDeck-debug.apk` (~33 KB)** — Installs side-by-side as *TabDeck Debug* with Chrome DevTools WebView debugging and a live connection diagnostics badge.
+2. **Install & Open:** Tap the downloaded `.apk` on your Android device (allow *"Install unknown apps"* for your browser/file manager if prompted).
+3. **Zero-Config Connection:** On first launch, follow the quick **3-step Welcome Guide**. As long as `TabDeck.exe` is running on Windows on the **same Wi-Fi** (or connected over USB with ADB), TabDeck discovers and connects to your PC automatically — no IP address typing required.
+
+To build both APKs from source (requires Android SDK & JDK 11+):
+```powershell
+.\android-app\build_apk.ps1
+```
+
+---
+
+## Optional Add-Ons
+
+### 1. Wired USB Mode & Unrooted Phone Multi Control (ADB)
+Wi-Fi dashboard, audio streaming, and touchscreen work **without** ADB. To use **wired USB mode** or **Multi Control on an unrooted phone (Android 11–15+)**:
+1. Install Google's official ADB Platform Tools on Windows (one command in PowerShell):
+   ```powershell
+   winget install --id Google.PlatformTools -e
+   ```
+   *(Or download [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools) and place `adb.exe` in a `platform-tools\` folder next to `TabDeck.exe`.)*
+2. On your Android phone, enable **Developer Options** (*Settings → About phone → tap Build number 7 times*), then turn on **Wireless debugging** (or **USB debugging**).
+3. In TabDeck, open **Tray → Multi Control → Arrange Devices** (or tap **`⧉ Devices`** in the app) → click **`Setup Unrooted Phone (S24)`**:
+   - **Wireless Debugging (no cable):** Enter the IP:Port (and 6-digit pairing code the first time) → click **Pair & Start**.
+   - **3-Second USB Deploy:** Plug in briefly via USB → click **Deploy** → unplug and place your phone on a wireless charger; it stays connected over Wi-Fi.
+4. Drag your tablet and phone cards anywhere around your monitors to snap crossing edges!
+
+### 2. 3rd Extended Screen (Virtual Display Driver)
+To use your tablet as a true independent **3rd Windows monitor** (via the **`3rd Scr`** button in fullscreen):
+1. Install the open-source signed [VirtualDrivers / Virtual-Display-Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver):
+   ```powershell
+   winget install --id VirtualDrivers.Virtual-Display-Driver -e
+   ```
+2. Add your tablet's native resolution (e.g., `2000×1200 @ 60 Hz` for Galaxy Tab S6 Lite) inside `C:\VirtualDisplayDriver\vdd_settings.xml`.
+3. Open TabDeck Fullscreen on your tablet and tap **`3rd Scr`** to switch between Mirroring and Extended Display mode.
+
+---
+
+## Troubleshooting (Windows)
+
+| Issue | Quick Fix |
+| :--- | :--- |
+| **Tablet / phone stays on *"Waiting for laptop..."* over Wi-Fi** | Right-click the **TabDeck** tray icon → **Enable Wi-Fi Access (Allow Firewall)** and confirm the admin prompt. Make sure both devices are on the same Wi-Fi (not a guest network with client isolation). |
+| **Can't see any window after double-clicking `TabDeck.exe`** | TabDeck runs in the **System Tray** (bottom-right near the clock, inside the `^` icon). Right-click it → **Open in PC Browser** (`http://127.0.0.1:8765`) to verify it's running. |
+| **SmartScreen blocks `TabDeck.exe`** | Click **More info → Run anyway**, or right-click `TabDeck.exe` → **Properties** → check **Unblock** → **OK**. |
+| **Multi Control cursor feels stuck on tablet/phone** | Press **`Ctrl + Alt + M`** (or **`ScrollLock`** / emergency **`Ctrl + Alt + Esc`**) to snap immediately back to Windows and release all keys. |
+| **Unrooted phone disconnects Multi Control after a phone reboot** | Re-open **`⧉ Devices` → `Setup Unrooted Phone`** and click **Pair & Start** (or plug in for 3 seconds and click **Deploy**). |
 
 ---
 
@@ -23,38 +107,17 @@
 
 ```text
 tabdeck/
-├── TabDeck.exe             # Single clickable Windows app launcher (custom icon, no console)
+├── TabDeck.exe             # Clickable Windows launcher (auto-bootstraps .venv when run from source)
 ├── app/                    # Unified Python Windows backend (tray, FastAPI, Multi Control, video/audio/pen)
 ├── static/                 # Responsive dashboard, fullscreen touch/pen UI, & 2D Device Layout Studio
-├── android-app/            # Native Android companion APK (immersive WebView + 48kHz PCM audio + auto-discovery)
+├── android-app/            # Native Android companion APK source & dual Debug/Release build script
 ├── android-mc/             # Tiny 15 KB C dual-mode /dev/uinput + non-root /dev/uhid Multi Control daemon
-├── launcher/               # C# source for TabDeck.exe
+├── launcher/               # C# source for TabDeck.exe & PyInstaller standalone release packager
 ├── config.example.json     # Example macro configuration
 ├── requirements.txt        # Python dependencies
 ├── CREDITS.md              # Full open-source attributions & licenses
 └── LICENSE                 # MIT License
 ```
-
----
-
-## Quick Start (Minimum Setup)
-
-1. **Windows (Standalone — Zero Python Needed!):**
-   - Download **`TabDeck-Windows-v0.9.zip`** from the [Releases](../../releases) page, extract it, and double-click **`TabDeck.exe`**.
-   - *(Or if running from source: clone the repo and double-click `TabDeck.exe`, which auto-creates `.venv` and installs dependencies on first launch. To build your own standalone zip: `.\launcher\build_windows_release.ps1`.)*
-   - Right-click the **TabDeck** tray icon to enable **Start with Windows**, allow **Wi-Fi Firewall**, or open **Arrange Devices (Drag & Drop Layout)**.
-2. **Android (2 Builds Available on Releases):**
-   - **`TabDeck-release.apk` (~29 KB)** — Lean production build for daily use.
-   - **`TabDeck-debug.apk` (~33 KB)** — Installs side-by-side (`TabDeck Debug`) with Chrome DevTools WebView debugging and a live connection diagnostics badge.
-   - On first launch, a quick **3-step Welcome Guide** walks you through connecting via USB or Wi-Fi (auto-discovered with zero IP setup).
-   - To build both APKs from source: `.\android-app\build_apk.ps1`
-3. **Add an Unrooted Phone (e.g., Samsung Galaxy S24) to Multi Control:**
-   - Open **Tray → Multi Control → Arrange Devices** (or tap **`⧉ Devices`** in TabDeck).
-   - Click **`Setup Unrooted Phone (S24)`**:
-     - **Wireless Debugging (no cable):** Enable *Developer Options → Wireless debugging* on your phone, enter the IP:Port + pairing code once, and click **Pair & Start**.
-     - **USB Quick-Deploy:** Plug your phone in for 3 seconds with USB Debugging enabled, click **Deploy**, then unplug and place it on your wireless charger.
-   - Drag your tablet and phone cards wherever you physically place them around your monitors!
-5. *(Optional)* **Enable 3rd Extended Screen:** Install [VirtualDrivers / Virtual-Display-Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver) configured with your tablet's native resolution (e.g., `2000×1200 @ 60 Hz`), then tap **`3rd Scr`** in TabDeck's fullscreen toolbar.
 
 ---
 
@@ -74,6 +137,7 @@ TabDeck uses and gratefully acknowledges the following open-source projects (ful
 | [PyWinRT](https://github.com/pywinrt/pywinrt) | David Lechner & contributors | MIT | Windows GSMTC Now Playing controls |
 | [psutil](https://github.com/giampaolo/psutil) | Giampaolo Rodola | BSD-3-Clause | System telemetry & per-screen app detection |
 | [pystray](https://github.com/moses-palmer/pystray) | Moses Palmér | LGPL-3.0 | Windows System Tray integration |
+| [PyInstaller](https://github.com/pyinstaller/pyinstaller) | PyInstaller Development Team | GPL-2.0 with Bootloader Exception | Packaging standalone Windows `.exe` release |
 | [Android Platform Tools & NDK](https://developer.android.com/ndk) | Google / AOSP | Apache-2.0 | ADB forwarding, Wireless Debugging & `arm64-v8a` build |
 | [scrcpy](https://github.com/Genymobile/scrcpy) *(inspiration)* | Genymobile | Apache-2.0 | Inspiration for non-root Android `/dev/uhid` mouse/keyboard HID injection |
 
