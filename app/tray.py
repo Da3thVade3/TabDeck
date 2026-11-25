@@ -8,8 +8,12 @@ import traceback
 import webbrowser
 from pathlib import Path
 
-APP_DIR = Path(__file__).resolve().parent
-BASE_DIR = APP_DIR.parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+    APP_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+else:
+    APP_DIR = Path(__file__).resolve().parent
+    BASE_DIR = APP_DIR.parent
 os.chdir(BASE_DIR)
 for p in (str(APP_DIR), str(BASE_DIR)):
     if p not in sys.path:

@@ -39,8 +39,9 @@ tabdeck/
 
 ## Quick Start (Minimum Setup)
 
-1. **Windows (1 Click):** Download or clone TabDeck and double-click **`TabDeck.exe`**.
-   - On first run, `TabDeck.exe` automatically creates `.venv` and installs all Python dependencies for you (requires Python 3.11+), then launches silently into your Windows System Tray.
+1. **Windows (Standalone — Zero Python Needed!):**
+   - Download **`TabDeck-Windows-v0.9.zip`** from the [Releases](../../releases) page, extract it, and double-click **`TabDeck.exe`**.
+   - *(Or if running from source: clone the repo and double-click `TabDeck.exe`, which auto-creates `.venv` and installs dependencies on first launch. To build your own standalone zip: `.\launcher\build_windows_release.ps1`.)*
    - Right-click the **TabDeck** tray icon to enable **Start with Windows**, allow **Wi-Fi Firewall**, or open **Arrange Devices (Drag & Drop Layout)**.
 2. **Android (2 Builds Available on Releases):**
    - **`TabDeck-release.apk` (~29 KB)** — Lean production build for daily use.

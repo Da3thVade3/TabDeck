@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -25,9 +26,15 @@ def find_adb() -> str | None:
 
 
 def find_mc_binary() -> Path | None:
-    root = Path(__file__).resolve().parent.parent
-    p = root / "android-mc" / "tabdeck_mc"
-    return p if p.exists() else None
+    roots = [
+        Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent,
+        Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)),
+    ]
+    for root in roots:
+        p = root / "android-mc" / "tabdeck_mc"
+        if p.exists():
+            return p
+    return None
 
 
 def _run_adb(args: list[str], timeout: int = 12) -> tuple[bool, str]:

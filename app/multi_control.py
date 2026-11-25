@@ -19,6 +19,7 @@ import ctypes
 import json
 import socket
 import struct
+import sys
 import threading
 import time
 import uuid
@@ -29,7 +30,7 @@ import mss
 
 import video_stream
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
 MC_CONFIG_PATH = BASE_DIR / "multicontrol.json"
 DEFAULT_MC_PORT = 8767
 

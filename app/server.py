@@ -1,5 +1,6 @@
 import json
 import socket
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -15,9 +16,10 @@ import multi_control
 import pc_control
 import video_stream
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
+BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR)) if getattr(sys, "frozen", False) else BASE_DIR
 CONFIG_PATH = BASE_DIR / "config.json"
-STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR = (BASE_DIR / "static") if (BASE_DIR / "static").exists() else (BUNDLE_DIR / "static")
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "macros": [
