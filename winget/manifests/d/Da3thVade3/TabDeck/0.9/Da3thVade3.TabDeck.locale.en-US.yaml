@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: Da3thVade3.TabDeck
+PackageVersion: "0.9"
+PackageLocale: en-US
+Publisher: Da3thVade3
+PublisherUrl: https://github.com/Da3thVade3/TabDeck
+PublisherSupportUrl: https://github.com/Da3thVade3/TabDeck/issues
+PackageName: TabDeck
+PackageUrl: https://github.com/Da3thVade3/TabDeck
+License: MIT
+LicenseUrl: https://github.com/Da3thVade3/TabDeck/blob/main/LICENSE
+ShortDescription: All-in-one Windows & Android companion for Stream Deck macros, audio mixing, touchscreen/S-Pen display, and Multi Control.
+Description: Turn your Android tablet and phone into a Windows Stream Deck macropad, per-app audio mixer, wireless PC speaker, SuperDisplay-style touchscreen with native Windows Ink S-Pen, 3rd extended monitor, and 2D drag-and-drop Multi Control across rooted and unrooted Android devices.
+Tags:
+  - android
+  - stream-deck
+  - touchscreen
+  - multi-control
+  - s-pen
+  - second-screen
+ReleaseNotesUrl: https://github.com/Da3thVade3/TabDeck/releases/tag/v0.9
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

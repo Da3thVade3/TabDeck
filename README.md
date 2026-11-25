@@ -20,33 +20,58 @@
 
 ---
 
-## Windows Installation Guide
+## Windows Installation Guide (Choose Your Preferred Method)
 
-### Method A: Standalone App (Recommended — No Python Needed)
+Pick whichever installation method you're most comfortable with — **no Python installation required** for Options 1–3:
 
-1. **Download:** Go to the [Releases](https://github.com/Da3thVade3/TabDeck/releases) page and download **`TabDeck-Windows-v0.9.zip`**.
-2. **Extract the ZIP first:** Right-click `TabDeck-Windows-v0.9.zip` → **Extract All...** into a folder you want to keep (for example `C:\Apps\TabDeck`).
-   - *Important:* Do **not** double-click `TabDeck.exe` from inside the unextracted ZIP preview — extract it first so TabDeck can load `static/` and save your settings.
-3. **Launch `TabDeck.exe`:** Double-click **`TabDeck.exe`**.
-   - **If Windows SmartScreen shows *"Windows protected your PC"*:** Because TabDeck is a free, unsigned open-source app, Windows may show a one-time warning. Click **More info** → **Run anyway** *(or build it yourself from source below)*.
-4. **Find the System Tray Icon:** TabDeck runs silently in the background with no console window. Look for the **4-tile TabDeck icon** in the bottom-right Windows System Tray (click the **`^`** arrow next to the clock if it's tucked away).
-5. **Allow Wi-Fi Connections (1 Click):** Right-click the **TabDeck** tray icon → click **Enable Wi-Fi Access (Allow Firewall)** → click **Yes** on the Windows admin prompt.
-   - This adds firewall rules for **TCP `8765`** and **UDP `8766`** on all network profiles (including *Public* Wi-Fi) so your tablet and phone connect automatically over Wi-Fi.
-6. *(Optional)* **Auto-Start with Windows:** Right-click the tray icon → check **Start with Windows**.
+### Option 1: One-Line Plug-and-Play Installer (Fastest!)
+Open **PowerShell** (press `Win + X` → *Terminal / PowerShell*) and paste:
+```powershell
+irm https://raw.githubusercontent.com/Da3thVade3/TabDeck/main/install.ps1 | iex
+```
+This automatically downloads the latest standalone release, installs to `%LOCALAPPDATA%\TabDeck`, creates **Start Menu** and **Desktop** shortcuts, preserves your settings on future upgrades, and launches **TabDeck** right into your System Tray.
 
-### Method B: Run From Source (Requires Python 3.11+)
+To cleanly uninstall anytime:
+```powershell
+irm https://raw.githubusercontent.com/Da3thVade3/TabDeck/main/uninstall.ps1 | iex
+```
 
+### Option 2: Portable ZIP Download (No Installer / No Scripts)
+1. Download **`TabDeck-Windows-v0.9.zip`** from the [Releases](https://github.com/Da3thVade3/TabDeck/releases) page.
+2. Right-click the ZIP → **Extract All...** into any folder you like (e.g., `C:\Apps\TabDeck`).
+   - *Important:* Extract the ZIP first rather than launching from inside the ZIP preview.
+3. Double-click **`TabDeck.exe`**.
+   - **If Windows SmartScreen shows *"Windows protected your PC"*:** Because TabDeck is an unsigned open-source app, click **More info** → **Run anyway** *(or build from source in Option 4)*.
+
+### Option 3: WinGet (Windows Package Manager)
+Validated WinGet manifests are included in [`winget/manifests/d/Da3thVade3/TabDeck/0.9`](winget/manifests/d/Da3thVade3/TabDeck/0.9):
+- **Once published to `microsoft/winget-pkgs`:**
+  ```powershell
+  winget install --id Da3thVade3.TabDeck -e
+  ```
+- **Or install via local manifest right now** (requires `winget settings --enable LocalManifestFiles`):
+  ```powershell
+  git clone https://github.com/Da3thVade3/TabDeck.git
+  winget install --manifest .\TabDeck\winget\manifests\d\Da3thVade3\TabDeck\0.9
+  ```
+
+### Option 4: Run or Build From Source (Developers · Python 3.11+)
 ```powershell
 git clone https://github.com/Da3thVade3/TabDeck.git
 cd TabDeck
 ```
-Then simply **double-click `TabDeck.exe`** — on first launch it automatically creates `.venv`, installs `requirements.txt`, and starts in the System Tray.
+Then simply **double-click `TabDeck.exe`** — on first launch it automatically creates `.venv`, installs `requirements.txt`, and launches into the System Tray.
 
 To rebuild the standalone Windows ZIP yourself:
 ```powershell
 .\.venv\Scripts\pip install pyinstaller
 .\launcher\build_windows_release.ps1 -Version 0.9
 ```
+
+### First-Launch Checklist (Windows — 10 Seconds)
+1. **Find the System Tray Icon:** TabDeck runs silently with no console window. Look for the **4-tile TabDeck icon** in the bottom-right System Tray (click the **`^`** arrow near the clock if hidden).
+2. **Allow Wi-Fi Connections (1 Click):** Right-click the **TabDeck** tray icon → **Enable Wi-Fi Access (Allow Firewall)** → click **Yes** on the admin prompt (opens TCP `8765` + UDP `8766` across all network profiles so your tablet/phone connects automatically over Wi-Fi).
+3. *(Optional)* **Start with Windows:** Right-click the tray icon → check **Start with Windows**.
 
 ---
 
