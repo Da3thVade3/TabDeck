@@ -1,0 +1,28 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Runtime logs, PIDs & local user configs
+tabdeck.log
+tabdeck.pid
+multicontrol.json
+config.json
+
+# Android signing keys & build intermediates
+android-app/*.jks
+android-app/*.keystore
+android-app/build/
+android-app/dist/
+android-app/TabDeck.apk
+android-app/*.idsig
+android-mc/setup_mc.sh
+
+# OS files
+Thumbs.db
+desktop.ini
+.DS_Store

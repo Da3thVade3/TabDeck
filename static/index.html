@@ -1,0 +1,2777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#090c13" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>TabDeck</title>
+  <style>
+    :root {
+      --bg: #090c13;
+      --card: rgba(20, 26, 39, 0.9);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle at 12% 10%, rgba(56,189,248,0.1), transparent 38%),
+                  radial-gradient(circle at 88% 85%, rgba(129,140,248,0.1), transparent 42%),
+                  var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    body.dimmed::after {
+      content: "";
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      pointer-events: none;
+      z-index: 900;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 10px 14px 12px;
+      gap: 10px;
+      max-width: 1700px;
+      margin: 0 auto;
+    }
+
+    /* Compact Header */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 15px;
+      padding: 7px 14px;
+      flex-shrink: 0;
+    }
+    .clock-wrap { display: flex; align-items: baseline; gap: 10px; }
+    .clock { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .date { font-size: 0.84rem; color: var(--muted); font-weight: 500; }
+
+    .stats-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .stat-pill {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+      color: #cbd5e1;
+    }
+    .stat-pill b { color: var(--text); font-weight: 600; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; }
+    .dot.offline { background: var(--danger); }
+
+    .top-actions { display: flex; align-items: center; gap: 6px; }
+    .icon-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.09);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+      transition: transform .1s ease, background .15s ease;
+    }
+    .icon-btn:active { transform: scale(0.95); }
+    .icon-btn.active { background: rgba(56,189,248,0.2); border-color: rgba(56,189,248,0.55); color: #7dd3fc; }
+
+    /* Main 2-Column Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 0.84fr 1.26fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card-header.collapsible { cursor: pointer; }
+    .card-title-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .chev {
+      display: inline-block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      transition: transform 0.16s ease;
+    }
+    .card.collapsed .chev { transform: rotate(-90deg); }
+    .card-body { display: flex; flex-direction: column; gap: 8px; }
+    .card.collapsed .card-body { display: none; }
+    .card.collapsed { flex: 0 0 auto !important; min-height: 0 !important; padding-top: 9px; padding-bottom: 9px; }
+    .card-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    /* Compact Media Row */
+    .now-playing-row { display: flex; align-items: center; gap: 10px; }
+    .album-art {
+      width: 50px; height: 50px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+    }
+    .album-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .track-meta { min-width: 0; flex: 1; }
+    .track-title { font-size: 0.94rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { font-size: 0.78rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .media-mini-controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .mini-mbtn {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .mini-mbtn:active { transform: scale(0.92); }
+    .mini-mbtn.primary {
+      width: 40px; height: 36px;
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      border-color: transparent; color: #fff;
+    }
+
+    /* Live PiP Preview + SuperDisplay-Style Fullscreen Touchscreen & S-Pen */
+    .pip-box {
+      display: none;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      touch-action: none;
+    }
+    .pip-box.active { display: block; }
+    .pip-box img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #000;
+      pointer-events: none;
+    }
+    .pip-box.fit-cover img { object-fit: cover; }
+
+    .pip-mini-bar {
+      position: absolute; top: 6px; left: 6px; right: 6px;
+      display: flex; justify-content: space-between; align-items: center; gap: 6px; z-index: 5;
+    }
+    .pip-box.fullscreen .pip-mini-bar { display: none; }
+
+    .pip-box.fullscreen {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      aspect-ratio: auto;
+      border-radius: 0;
+      border: none;
+      z-index: 2000;
+    }
+
+    /* Comfortable, Finger-Friendly, Collapsible & Movable Fullscreen Corner Dock */
+    .fs-corner-dock {
+      display: none;
+      position: absolute;
+      top: 12px; right: 12px;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 6px;
+      border-radius: 16px;
+      background: rgba(12, 17, 29, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 30;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: box-shadow 0.16s ease, transform 0.14s ease, border-color 0.16s ease;
+    }
+    .fs-corner-dock.dragging {
+      border-color: rgba(56, 189, 248, 0.95);
+      box-shadow: 0 12px 34px rgba(56, 189, 248, 0.45), 0 0 0 2px rgba(56, 189, 248, 0.9);
+      transform: scale(1.04);
+      opacity: 0.96;
+      cursor: grabbing;
+    }
+    .pip-box.fullscreen .fs-corner-dock { display: flex; }
+    .fs-corner-dock.tucked .fs-dock-items { display: none; }
+    .fs-corner-dock.tucked { opacity: 0.55; padding: 4px; }
+    .fs-dock-items { display: flex; align-items: center; gap: 6px; }
+
+    .fs-dock-btn {
+      height: 38px;
+      min-width: 42px;
+      padding: 0 12px;
+      border-radius: 11px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.09);
+      color: #f8fafc;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+    .fs-dock-btn:active { transform: scale(0.93); background: rgba(255,255,255,0.22); }
+    .fs-dock-btn.active { background: rgba(56,189,248,0.34); border-color: rgba(56,189,248,0.75); color: #e0f2fe; }
+    .fs-dock-btn.exit { background: rgba(239,68,68,0.3); border-color: rgba(239,68,68,0.65); color: #fecaca; }
+
+    /* Compact Floating Android Keyboard Input Bar (for typing into PC from tablet) */
+    .fs-key-bar {
+      display: none;
+      position: fixed;
+      left: 10px; right: 10px; bottom: 10px;
+      z-index: 2100;
+      flex-direction: column;
+      gap: 7px;
+      padding: 8px 10px;
+      border-radius: 16px;
+      background: rgba(11, 16, 29, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(10px);
+    }
+    .fs-key-bar.open { display: flex; }
+    .fs-key-input-row { display: flex; align-items: center; gap: 7px; }
+    .fs-type-input {
+      flex: 1;
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      font-size: 0.92rem;
+      outline: none;
+    }
+    .fs-type-input:focus { border-color: rgba(56, 189, 248, 0.85); background: rgba(15, 23, 42, 0.92); }
+    .fs-key-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .fs-key-row::-webkit-scrollbar { display: none; }
+    .fs-kbtn {
+      height: 34px;
+      min-width: 38px;
+      padding: 0 10px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .fs-kbtn:active { transform: scale(0.93); background: rgba(56, 189, 248, 0.35); }
+    .fs-kbtn.primary { background: rgba(56, 189, 248, 0.3); border-color: rgba(56, 189, 248, 0.65); color: #e0f2fe; }
+    .fs-kbtn.close { background: rgba(239, 68, 68, 0.28); border-color: rgba(239, 68, 68, 0.6); color: #fecaca; }
+
+    .pip-chip {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #f8fafc;
+      border-radius: 9px;
+      padding: 6px 10px;
+      font-size: 0.78rem; font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Compact Audio Section */
+    .audio-quick-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px; }
+    .pill-toggle {
+      height: 34px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: var(--text); font-weight: 600; font-size: 0.76rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pill-toggle:active { transform: scale(0.96); }
+    .pill-toggle.danger { background: rgba(239,68,68,0.22); border-color: rgba(239,68,68,0.55); color: #fca5a5; }
+    .pill-toggle.streaming {
+      background: linear-gradient(135deg, rgba(34,197,94,0.26), rgba(56,189,248,0.26));
+      border-color: rgba(56,189,248,0.65); color: #bbf7d0;
+    }
+
+    .slider-row { display: flex; align-items: center; gap: 8px; padding: 1px 2px; }
+    .slider-label { font-size: 0.76rem; color: var(--muted); min-width: 44px; font-weight: 600; }
+    .slider-val { font-size: 0.76rem; font-weight: 700; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 6px; border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      outline: none; margin: 4px 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.5); cursor: pointer;
+    }
+
+    .app-mixer { display: flex; flex-direction: column; gap: 4px; max-height: 82px; overflow-y: auto; padding: 3px 6px; margin: 0 -4px; }
+    .app-row { display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 1px 2px; }
+    .app-row input[type="range"] { height: 5px; margin: 4px 0; }
+    .app-row input[type="range"]::-webkit-slider-thumb { width: 14px; height: 14px; }
+    .app-name { width: 74px; font-size: 0.75rem; font-weight: 600; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; flex-shrink: 0; }
+    .app-name.muted { color: #ef4444; text-decoration: line-through; }
+
+    /* Flexible Collapsible Mouse Pad */
+    .touchpad-card { flex: 1 1 140px; min-height: 120px; display: flex; flex-direction: column; gap: 6px; }
+    .touchpad-card .card-body { flex: 1; min-height: 0; }
+    .touchpad-surface {
+      flex: 1; min-height: 76px; border-radius: 12px;
+      background:
+        radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(180deg, #0d1220 0%, #090d17 100%);
+      background-size: 16px 16px, 100% 100%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative; touch-action: none;
+      display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
+    }
+    .touchpad-hint { font-size: 0.68rem; color: rgba(148, 163, 184, 0.52); pointer-events: none; letter-spacing: 0.02em; }
+    .mouse-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex-shrink: 0; }
+    .mouse-btn {
+      height: 30px; border-radius: 9px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: #cbd5e1; font-size: 0.74rem; font-weight: 700; cursor: pointer;
+    }
+    .mouse-btn:active { background: rgba(56,189,248,0.25); color: #fff; transform: scale(0.97); }
+
+    /* Elgato Stream Deck Mobile App Style */
+    .macro-card { flex: 1; background: #0a0b0f; border: 1px solid rgba(255, 255, 255, 0.07); min-height: 0; }
+    .macro-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px;
+      flex: 1; align-content: center; padding: 4px 2px;
+      overflow-y: auto; scrollbar-width: none;
+    }
+    .macro-grid::-webkit-scrollbar { display: none; }
+    .macro-tile {
+      position: relative; width: 100%; aspect-ratio: 1 / 1;
+      border-radius: 18px; border: none;
+      background: linear-gradient(155deg, var(--tile-top, #2563eb) 0%, var(--tile-bot, #1d4ed8) 100%);
+      color: #ffffff; padding: 10px 6px 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+      cursor: pointer; overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.42);
+      transition: transform 0.08s cubic-bezier(0.2, 0, 0, 1), filter 0.1s ease;
+    }
+    .macro-tile:active { transform: scale(0.91); filter: brightness(1.16); }
+    .macro-tile.key-lit {
+      background: linear-gradient(155deg, #ef4444 0%, #b91c1c 100%) !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.78), 0 6px 18px rgba(239, 68, 68, 0.55);
+    }
+    .macro-icon { display: flex; align-items: center; justify-content: center; color: #ffffff; }
+    .macro-icon svg { width: 32px; height: 32px; stroke-width: 2.1; }
+    .macro-label {
+      font-size: 0.76rem; font-weight: 700; letter-spacing: 0.01em; text-align: center; line-height: 1.1;
+      color: rgba(255, 255, 255, 0.96); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .macro-del {
+      display: none; position: absolute; top: 6px; right: 6px;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(0, 0, 0, 0.72); color: #fff; border: 1px solid rgba(255,255,255,0.4);
+      font-size: 0.9rem; font-weight: 700; cursor: pointer; z-index: 3;
+    }
+    .editing .macro-del { display: flex; align-items: center; justify-content: center; }
+
+    /* Modals & Pro Settings Page */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(2, 6, 15, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 2500;
+      align-items: center; justify-content: center;
+      padding: 18px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto;
+      background: #101624;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal.wide { max-width: 720px; }
+    .modal.studio { max-width: 860px; }
+    .modal h2 { margin: 0; font-size: 1.18rem; }
+
+    /* Drag-and-Drop Multi Control Spatial Layout Studio */
+    .mc-stage {
+      position: relative;
+      width: 100%;
+      height: 330px;
+      border-radius: 16px;
+      background:
+        radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+        linear-gradient(180deg, #070b14 0%, #0b1222 100%);
+      background-size: 20px 20px, 100% 100%;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .mc-node {
+      position: absolute;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      text-align: center;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .mc-node.win {
+      background: linear-gradient(155deg, rgba(37, 99, 235, 0.32), rgba(15, 23, 42, 0.88));
+      border: 1.5px solid rgba(96, 165, 250, 0.55);
+      color: #dbeafe;
+      pointer-events: none;
+    }
+    .mc-node.dev {
+      background: linear-gradient(155deg, rgba(16, 185, 129, 0.28), rgba(15, 23, 42, 0.92));
+      border: 2px solid rgba(52, 211, 153, 0.72);
+      color: #ecfdf5;
+      cursor: grab;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      transition: box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+    .mc-node.dev.offline {
+      background: linear-gradient(155deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.92));
+      border-color: rgba(251, 191, 36, 0.65);
+    }
+    .mc-node.dev.disabled { opacity: 0.45; }
+    .mc-node.dev.selected {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.55), 0 8px 24px rgba(56, 189, 248, 0.3);
+    }
+    .mc-node.dev.dragging {
+      cursor: grabbing;
+      z-index: 20;
+      box-shadow: 0 0 0 2.5px #38bdf8, 0 14px 32px rgba(56, 189, 248, 0.45);
+    }
+    .mc-node-title { font-size: 0.76rem; font-weight: 800; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mc-node-sub { font-size: 0.64rem; color: rgba(226, 232, 240, 0.75); margin-top: 2px; }
+    .mc-node-badge {
+      display: inline-flex; align-items: center; gap: 4px; margin-top: 3px;
+      font-size: 0.62rem; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+      background: rgba(0, 0, 0, 0.42);
+    }
+    .mc-dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; display: inline-block; }
+    .mc-dot.off { background: #f59e0b; }
+    .mc-portal {
+      position: absolute;
+      background: linear-gradient(90deg, #38bdf8, #34d399);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.95);
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .mc-inspector {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr auto auto;
+      gap: 8px;
+      align-items: end;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .mc-inspector .field label { font-size: 0.7rem; }
+    .mc-inspector .field input, .mc-inspector .field select { padding: 7px 9px; font-size: 0.82rem; }
+    .mc-add-bar {
+      display: none;
+      grid-template-columns: 1.2fr 1fr 0.85fr 0.85fr auto;
+      gap: 8px;
+      align-items: end;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .mc-add-bar.open { display: grid; }
+
+    .settings-tabs {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .stab-btn {
+      padding: 9px 10px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted); font-weight: 700; font-size: 0.84rem;
+      cursor: pointer;
+    }
+    .stab-btn.active {
+      background: rgba(56,189,248,0.2); border-color: rgba(56,189,248,0.6); color: #e0f2fe;
+    }
+    .stab-pane { display: none; flex-direction: column; gap: 12px; }
+    .stab-pane.active { display: flex; }
+
+    .set-group {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 15px;
+      padding: 13px 15px;
+      display: flex; flex-direction: column; gap: 11px;
+    }
+    .set-group-title {
+      font-size: 0.76rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.07em; color: #7dd3fc;
+    }
+    .set-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .set-row-info { display: flex; flex-direction: column; gap: 2px; }
+    .set-row-label { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+    .set-row-sub { font-size: 0.75rem; color: var(--muted); }
+    .set-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+    .switch {
+      width: 52px; height: 30px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.1);
+      position: relative; cursor: pointer; flex-shrink: 0;
+      transition: background 0.18s ease;
+    }
+    .switch::after {
+      content: ""; position: absolute; top: 3px; left: 3px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #cbd5e1; transition: transform 0.18s ease, background 0.18s ease;
+    }
+    .switch.on { background: rgba(56,189,248,0.4); border-color: #38bdf8; }
+    .switch.on::after { transform: translateX(22px); background: #fff; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 0.76rem; color: var(--muted); font-weight: 600; }
+    .field input, .field select, .set-select {
+      background: #172033;
+      border: 1px solid rgba(255,255,255,0.14);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.86rem;
+      outline: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      color: #fff; border: none; border-radius: 12px;
+      padding: 10px 18px; font-weight: 700; cursor: pointer;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+      padding: 10px 16px; font-weight: 600; cursor: pointer;
+    }
+
+    .toast {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(90px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56,189,248,0.45);
+      color: #e0f2fe;
+      padding: 8px 16px; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 600;
+      z-index: 3000; transition: transform .2s ease; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 820px) {
+      html, body { overflow: auto; }
+      .app { height: auto; min-height: 100vh; }
+      .grid { grid-template-columns: 1fr; }
+      .macro-grid { grid-template-columns: repeat(4, 1fr); }
+      .set-grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="clock-wrap">
+        <div class="clock" id="clock">00:00</div>
+        <div class="date" id="date">---</div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-pill"><span class="dot" id="connDot"></span> <span id="connLabel">PC</span></div>
+        <div class="stat-pill">CPU <b id="cpuStat">--%</b></div>
+        <div class="stat-pill">RAM <b id="ramStat">--%</b></div>
+        <div class="stat-pill" id="battPill" style="display:none;">BAT <b id="battStat">--%</b></div>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" onclick="openMcLayoutModal()">&#x29C9; Devices</button>
+        <button class="icon-btn" onclick="openSettingsModal()">&#9881; Settings</button>
+        <button class="icon-btn" id="awakeBtn" onclick="toggleWakeLock()">Awake</button>
+        <button class="icon-btn" id="dimBtn" onclick="toggleDim()">Dim</button>
+        <button class="icon-btn" id="serverBtn" style="display:none;" onclick="window.TabDeckNative?.openServerSettings()">PC IP</button>
+        <button class="icon-btn" id="fullBtn" onclick="toggleFullscreen()">Full</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- Collapsible Left Column: Screen & Media + Audio + Auto-Expanding Mouse Pad -->
+      <section class="col" style="overflow-y:auto;scrollbar-width:none;">
+        <!-- Collapsible Screen & Media Card -->
+        <div class="card" id="cardMedia">
+          <div class="card-header collapsible" onclick="toggleCard('cardMedia')">
+            <div class="card-title-wrap">
+              <span class="chev">&#9662;</span>
+              <span class="card-title">Screen &amp; Media</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
+              <button class="icon-btn" id="pipToggleBtn" style="padding:4px 9px;font-size:0.74rem;" onclick="togglePipPreview()">Mini Screen</button>
+              <button class="icon-btn" id="directFsBtn" style="padding:4px 9px;font-size:0.74rem;" onclick="openFullscreenTouch()">Fullscreen</button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="pip-box" id="pipBox">
+              <img id="pipImg" alt="Laptop Screen" />
+
+              <!-- Small PiP Preview Bar -->
+              <div class="pip-mini-bar">
+                <button class="pip-chip" onclick="event.stopPropagation(); enterVideoFullscreen()" style="background:rgba(56,189,248,0.88);">&#x26F6; Fullscreen</button>
+                <button class="pip-chip" onclick="event.stopPropagation(); stopPipVideo()" style="background:rgba(239,68,68,0.82);">&times;</button>
+              </div>
+
+              <!-- Comfortable, Reliable, Collapsible & Movable Fullscreen Corner Dock -->
+              <div class="fs-corner-dock" id="fsDock">
+                <button class="fs-dock-btn" id="fsTuckBtn" style="min-width:34px;padding:0 8px;" onclick="toggleFsDockTuck()" title="Hide/Show Bar">&#8250;</button>
+                <div class="fs-dock-items">
+                  <button class="fs-dock-btn" id="pipMonBtn" onclick="cycleMonitor()">S1</button>
+                  <button class="fs-dock-btn" id="fsThirdBtn" onclick="toggleThirdScreenMode()">3rd Scr</button>
+                  <button class="fs-dock-btn" id="fsKbBtn" onclick="toggleFsKeyboard()" title="Type with Android Keyboard">&#9000;</button>
+                  <button class="fs-dock-btn" id="fsPenBtn" onclick="quickTogglePalmReject()">Pen</button>
+                  <button class="fs-dock-btn" onclick="openSettingsModal()">&#9881;</button>
+                  <button class="fs-dock-btn exit" onclick="exitVideoFullscreen()">Exit</button>
+                </div>
+              </div>
+
+              <!-- Floating Android Keyboard & Quick PC Keys Bar -->
+              <div class="fs-key-bar" id="fsKeyBar">
+                <div class="fs-key-input-row">
+                  <input id="fsTypeInput" class="fs-type-input" type="text"
+                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                    placeholder="Type with Samsung Keyboard / S-Pen to PC..." />
+                  <button class="fs-kbtn primary" onclick="sendPcKey('enter')">Enter &#8629;</button>
+                  <button class="fs-kbtn close" onclick="closeFsKeyboard()">&times;</button>
+                </div>
+                <div class="fs-key-row">
+                  <button class="fs-kbtn" onclick="sendPcKey('esc')">Esc</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('tab')">Tab</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('backspace')">&#9003;</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('a', true)">Ctrl+A</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('c', true)">Copy</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('v', true)">Paste</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('z', true)">Undo</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('left')">&#8592;</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('up')">&#8593;</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('down')">&#8595;</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('right')">&#8594;</button>
+                  <button class="fs-kbtn" onclick="sendPcKey('win')">Win</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="now-playing-row">
+              <div class="album-art" id="albumArt">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <div class="track-meta">
+                <div class="track-title" id="trackTitle">Nothing Playing</div>
+                <div class="track-artist" id="trackArtist">Laptop media ready</div>
+              </div>
+              <div class="media-mini-controls">
+                <button class="mini-mbtn" onclick="sendMedia('prev')" aria-label="Prev">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+                </button>
+                <button class="mini-mbtn primary" id="playPauseBtn" onclick="sendMedia('play_pause')" aria-label="Play Pause">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button class="mini-mbtn" onclick="sendMedia('next')" aria-label="Next">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Audio & Mixer Card -->
+        <div class="card" id="cardAudio">
+          <div class="card-header collapsible" onclick="toggleCard('cardAudio')">
+            <div class="card-title-wrap">
+              <span class="chev">&#9662;</span>
+              <span class="card-title">Audio &amp; Mixer</span>
+            </div>
+            <span id="audioMiniSummary" style="font-size:0.74rem;color:var(--muted);font-variant-numeric:tabular-nums;">50%</span>
+          </div>
+
+          <div class="card-body">
+            <div class="audio-quick-row">
+              <button class="pill-toggle" id="streamBtn" onclick="togglePcAudioStream()">
+                <span id="streamBtnLabel">Tab Speaker</span>
+              </button>
+              <button class="pill-toggle" id="muteBtn" onclick="toggleMute()">Speaker On</button>
+              <button class="pill-toggle" id="micBtn" onclick="toggleMic()">Mic Live</button>
+            </div>
+
+            <div class="slider-row">
+              <span class="slider-label">Master</span>
+              <input type="range" id="masterVol" min="0" max="100" value="50" oninput="onMasterVolInput(this.value)" />
+              <span class="slider-val" id="masterVolVal">50%</span>
+            </div>
+
+            <div class="app-mixer" id="appMixer">
+              <div style="font-size:0.75rem;color:var(--muted);">No active audio apps</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Laptop Mouse Pad -->
+        <div class="card touchpad-card" id="cardMouse">
+          <div class="card-header collapsible" onclick="toggleCard('cardMouse')">
+            <div class="card-title-wrap">
+              <span class="chev">&#9662;</span>
+              <span class="card-title">Mouse Pad</span>
+            </div>
+            <span id="wsBadge" style="font-size:0.7rem;color:var(--muted);">Ready</span>
+          </div>
+
+          <div class="card-body">
+            <div class="touchpad-surface" id="touchpad">
+              <span class="touchpad-hint">1-finger move &amp; tap · 2-finger scroll &amp; right-click</span>
+            </div>
+            <div class="mouse-btns">
+              <button class="mouse-btn" id="lClickBtn">Left Click</button>
+              <button class="mouse-btn" id="rClickBtn">Right Click</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Elgato Stream Deck Mobile 5x4 Macropad -->
+      <section class="col">
+        <div class="card macro-card" id="macroCard">
+          <div class="card-header">
+            <span class="card-title">Stream Deck</span>
+            <div style="display:flex;gap:6px;">
+              <button class="icon-btn" style="padding:4px 9px;font-size:0.75rem;" onclick="openMacroModal()">+ Add</button>
+              <button class="icon-btn" id="editMacroBtn" style="padding:4px 9px;font-size:0.75rem;" onclick="toggleEditMacros()">Edit</button>
+            </div>
+          </div>
+          <div class="macro-grid" id="macroGrid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Pro Streaming, S-Pen & Touch Settings Modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal wide">
+      <div class="card-header">
+        <h2>Display, S-Pen &amp; Input Settings</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="icon-btn" id="guideSettingsBtn" style="display:none;" onclick="closeModal('settingsModal'); window.TabDeckNative?.showIntro()">? Guide</button>
+          <button class="icon-btn" onclick="closeModal('settingsModal')">Done</button>
+        </div>
+      </div>
+
+      <div class="settings-tabs">
+        <button class="stab-btn active" id="stab_stream" onclick="switchSettingsTab('stream')">Streaming (USB / Wi-Fi)</button>
+        <button class="stab-btn" id="stab_pen" onclick="switchSettingsTab('pen')">S-Pen &amp; Touch</button>
+        <button class="stab-btn" id="stab_mouse" onclick="switchSettingsTab('mouse')">Mouse &amp; Multi Control</button>
+      </div>
+
+      <!-- Tab 1: Streaming Profiles -->
+      <div class="stab-pane active" id="pane_stream">
+        <div class="set-group">
+          <div class="set-group-title">Dynamic Auto-Adaptive Quality</div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Auto-Switch Quality by App &amp; S-Pen</span>
+              <span class="set-row-sub">High-Res Sharp on Netflix/YouTube/VLC · High-FPS Smooth on OneNote/Drawing &amp; S-Pen</span>
+            </div>
+            <button class="switch" id="swAdaptive" onclick="toggleSettingBool('adaptiveQuality', true)"></button>
+          </div>
+          <div style="font-size:0.76rem;color:#7dd3fc;" id="adaptiveStatusLine">Current mode: Auto</div>
+        </div>
+
+        <div class="set-group">
+          <div class="set-group-title">Wired (USB) Streaming Profile</div>
+          <div class="set-grid-3">
+            <div class="field">
+              <label>Resolution</label>
+              <select id="sUsbWidth" onchange="saveSettings(true)">
+                <option value="1920">1080p Full HD</option>
+                <option value="1600">900p HD+</option>
+                <option value="1280">720p HD</option>
+                <option value="960">540p Fast</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Frame Rate</label>
+              <select id="sUsbFps" onchange="saveSettings(true)">
+                <option value="30">30 FPS (Smooth)</option>
+                <option value="24">24 FPS (Balanced)</option>
+                <option value="20">20 FPS</option>
+                <option value="15">15 FPS (Low CPU)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Image Quality</label>
+              <select id="sUsbQuality" onchange="saveSettings(true)">
+                <option value="86">High (86%)</option>
+                <option value="76">Balanced (76%)</option>
+                <option value="65">Fast (65%)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="set-group">
+          <div class="set-group-title">Wi-Fi Streaming Profile (Auto-Used When Unplugged)</div>
+          <div class="set-grid-3">
+            <div class="field">
+              <label>Resolution</label>
+              <select id="sWifiWidth" onchange="saveSettings(true)">
+                <option value="1920">1080p Full HD</option>
+                <option value="1280">720p HD</option>
+                <option value="960">540p Balanced</option>
+                <option value="854">480p Range Saver</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Frame Rate</label>
+              <select id="sWifiFps" onchange="saveSettings(true)">
+                <option value="24">24 FPS</option>
+                <option value="20">20 FPS (Balanced)</option>
+                <option value="15">15 FPS (Stable)</option>
+                <option value="12">12 FPS (Low Bandwidth)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Image Quality</label>
+              <select id="sWifiQuality" onchange="saveSettings(true)">
+                <option value="78">High (78%)</option>
+                <option value="68">Balanced (68%)</option>
+                <option value="56">Fast (56%)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="set-group">
+          <div class="set-group-title">Display &amp; Audio Behavior</div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Show Windows Mouse Cursor</span>
+              <span class="set-row-sub">Draws live laptop pointer onto the streamed screen</span>
+            </div>
+            <button class="switch" id="swShowCursor" onclick="toggleSettingBool('showCursor', true)"></button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Auto-Stream Laptop Audio</span>
+              <span class="set-row-sub">Automatically play laptop sound on tablet when opening screen</span>
+            </div>
+            <button class="switch" id="swAutoAudio" onclick="toggleSettingBool('autoAudio', false)"></button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Screen Fit Mode</span>
+              <span class="set-row-sub">Contain shows full 16:9 screen; Cover fills edge-to-edge</span>
+            </div>
+            <select class="set-select" id="sFitMode" onchange="saveSettings(false)">
+              <option value="contain">Fit Whole Screen</option>
+              <option value="cover">Fill Edge-to-Edge</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: S-Pen & Touchscreen -->
+      <div class="stab-pane" id="pane_pen">
+        <div class="set-group">
+          <div class="set-group-title">Samsung S-Pen Stylus</div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Enable S-Pen Support</span>
+              <span class="set-row-sub">Precision stylus drawing, writing, and clicking in fullscreen</span>
+            </div>
+            <button class="switch" id="swPenEnabled" onclick="toggleSettingBool('penEnabled', false)"></button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Windows Ink Pressure &amp; Tilt</span>
+              <span class="set-row-sub">Native pressure-sensitive strokes in OneNote, Krita, PDFs &amp; drawing apps</span>
+            </div>
+            <button class="switch" id="swWindowsInk" onclick="toggleSettingBool('windowsInk', false)"></button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">S-Pen Hover Cursor</span>
+              <span class="set-row-sub">Move cursor on laptop while hovering S-Pen tip above screen</span>
+            </div>
+            <button class="switch" id="swPenHover" onclick="toggleSettingBool('penHover', false)"></button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Palm Rejection (Pen-Only Mode)</span>
+              <span class="set-row-sub">Ignore 1-finger hand/palm touches so you can rest your wrist while writing</span>
+            </div>
+            <button class="switch" id="swPalmReject" onclick="toggleSettingBool('palmRejection', false)"></button>
+          </div>
+        </div>
+
+        <div class="set-group">
+          <div class="set-group-title">Finger Touch on Fullscreen Display</div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Finger Touch Mode</span>
+              <span class="set-row-sub">Choose how finger touches behave in Fullscreen Screen view</span>
+            </div>
+            <select class="set-select" id="sTouchMode" onchange="saveSettings(false)">
+              <option value="direct">Direct Touchscreen</option>
+              <option value="trackpad">Relative Trackpad</option>
+              <option value="off">Disabled (Pen Only)</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Allow 2-Finger Scroll with Palm Rejection</span>
+              <span class="set-row-sub">Scroll pages with two fingers even while 1-finger palm rejection is ON</span>
+            </div>
+            <button class="switch" id="swTwoFingerScroll" onclick="toggleSettingBool('twoFingerScroll', false)"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Mouse Pad & Multi Control -->
+      <div class="stab-pane" id="pane_mouse">
+        <div class="set-group">
+          <div class="set-group-title">Multi Control (Laptop Mouse &amp; Keyboard &rarr; Tablet / Phone)</div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Enable Multi Control</span>
+              <span class="set-row-sub">Glide laptop mouse past any snapped monitor edge (or press Ctrl+Alt+M) to control Android apps</span>
+            </div>
+            <button class="switch" id="swMcEnabled" onclick="toggleMcEnabled()"></button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label" id="mcStatusLine">Status: Checking...</span>
+              <span class="set-row-sub">Drag &amp; drop tablets and phones around your monitors to pick where your mouse crosses</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-primary" style="padding:7px 12px;font-size:0.78rem;" onclick="closeModal('settingsModal'); openMcLayoutModal()">Arrange Devices</button>
+              <button class="btn-secondary" style="padding:7px 12px;font-size:0.78rem;" onclick="toggleMcNow()">Switch Now</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="set-group">
+          <div class="set-group-title">Tablet Touchpad Sensitivity &amp; Scrolling</div>
+          <div class="slider-row">
+            <span class="slider-label" style="min-width:110px;">Cursor Speed</span>
+            <input type="range" id="sMouseSens" min="0.8" max="3.0" step="0.1" value="1.7" oninput="saveSettings(false)" />
+            <span class="slider-val" id="sMouseSensVal">1.7x</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label" style="min-width:110px;">Scroll Speed</span>
+            <input type="range" id="sScrollSpeed" min="0.5" max="2.5" step="0.1" value="1.2" oninput="saveSettings(false)" />
+            <span class="slider-val" id="sScrollSpeedVal">1.2x</span>
+          </div>
+          <div class="set-row">
+            <div class="set-row-info">
+              <span class="set-row-label">Natural Scrolling (Invert)</span>
+              <span class="set-row-sub">Drag fingers up to scroll down like a tablet/phone</span>
+            </div>
+            <button class="switch" id="swNaturalScroll" onclick="toggleSettingBool('naturalScroll', false)"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visual Drag-and-Drop Multi Control Device Layout Studio -->
+  <div class="modal-backdrop" id="mcLayoutModal">
+    <div class="modal studio">
+      <div class="card-header">
+        <div>
+          <h2>Multi Control Device Layout</h2>
+          <div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">
+            Drag your tablet or phone to snap against any edge of your monitors. Glowing cyan lines show active crossing edges.
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-primary" style="padding:7px 11px;font-size:0.78rem;" onclick="togglePhoneSetupBar()">Setup Unrooted Phone (S24)</button>
+          <button class="btn-secondary" style="padding:7px 11px;font-size:0.78rem;" onclick="toggleAddDeviceBar()">+ Add Manual</button>
+          <button class="icon-btn" onclick="closeModal('mcLayoutModal')">Done</button>
+        </div>
+      </div>
+
+      <!-- 1-Click Unrooted Android Phone Setup (Wireless Debugging / USB -> Wi-Fi UHID) -->
+      <div class="mc-add-bar" id="mcPhoneSetupBar" style="grid-template-columns:1fr;gap:10px;">
+        <div style="font-size:0.78rem;color:#bae6fd;line-height:1.4;">
+          <b>No Root Needed (Samsung S24 &amp; Android 11+):</b> Enable <b>Developer Options &rarr; Wireless debugging</b> on your phone, then pair once below (or plug in via USB for 3 seconds and unplug onto your wireless charger).
+        </div>
+        <div style="display:grid;grid-template-columns:1.1fr 1.1fr 0.85fr 0.9fr auto;gap:8px;align-items:end;">
+          <div class="field">
+            <label>Wireless Debugging IP:Port</label>
+            <input id="mcWConnect" placeholder="192.168.1.100:37891" />
+          </div>
+          <div class="field">
+            <label>Pair IP:Port (1st time only)</label>
+            <input id="mcWPairAddr" placeholder="192.168.1.100:41234" />
+          </div>
+          <div class="field">
+            <label>6-Digit Code</label>
+            <input id="mcWPairCode" placeholder="123456" />
+          </div>
+          <div class="field">
+            <label>Phone Name</label>
+            <input id="mcWName" value="Android Phone" />
+          </div>
+          <button class="btn-primary" style="height:36px;padding:0 12px;font-size:0.78rem;" onclick="runWirelessPhoneSetup()">Pair &amp; Start</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
+          <span style="font-size:0.75rem;color:var(--muted);" id="mcUsbListLabel">Or plug S24 into USB briefly to start Wi-Fi mode:</span>
+          <div style="display:flex;gap:6px;align-items:center;" id="mcUsbBtns">
+            <button class="btn-secondary" style="padding:5px 10px;font-size:0.75rem;" onclick="refreshAdbUsbDevices()">Scan USB Devices</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inline Add New Device Form -->
+      <div class="mc-add-bar" id="mcAddBar">
+        <div class="field">
+          <label>Device Name</label>
+          <input id="mcNewName" placeholder="e.g. Samsung Phone" />
+        </div>
+        <div class="field">
+          <label>Wi-Fi IP Address</label>
+          <input id="mcNewIp" placeholder="e.g. 192.168.1.100" />
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select id="mcNewKind">
+            <option value="phone">Phone</option>
+            <option value="tablet">Tablet</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Orientation</label>
+          <select id="mcNewOrient">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+        <button class="btn-primary" style="height:36px;padding:0 14px;font-size:0.8rem;" onclick="submitAddMcDevice()">Add</button>
+      </div>
+
+      <!-- 2D Interactive Spatial Drag-and-Drop Stage -->
+      <div class="mc-stage" id="mcStage"></div>
+
+      <!-- Selected Device Inspector -->
+      <div class="mc-inspector" id="mcInspector" style="display:none;">
+        <div class="field">
+          <label>Selected Device Name</label>
+          <input id="mcSelName" onchange="updateSelectedMcField()" />
+        </div>
+        <div class="field">
+          <label>Wi-Fi IP (Port 8767)</label>
+          <input id="mcSelIp" placeholder="192.168.x.x" onchange="updateSelectedMcField()" />
+        </div>
+        <button class="btn-secondary" style="height:36px;padding:0 11px;font-size:0.78rem;" id="mcRotateBtn" onclick="rotateSelectedMcDevice()">Rotate</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-primary" style="height:36px;padding:0 11px;font-size:0.78rem;" onclick="switchToSelectedMcDevice()">Test Now</button>
+          <button class="btn-secondary" style="height:36px;padding:0 10px;font-size:0.78rem;color:#fca5a5;" id="mcDelBtn" onclick="deleteSelectedMcDevice()">Remove</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;font-size:0.78rem;color:var(--muted);">
+          <span>Pointer Speed:</span>
+          <input type="range" id="mcSelSens" min="0.6" max="2.4" step="0.05" value="1.25" style="width:120px;" oninput="updateSelectedMcSens(this.value)" />
+          <span id="mcSelSensVal" style="font-weight:700;color:var(--text);">1.25x</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:0.74rem;color:#7dd3fc;">Hotkey: Ctrl+Alt+M (or ScrollLock)</span>
+          <button class="btn-primary" style="padding:8px 16px;font-size:0.82rem;" onclick="saveMcLayout(true)">Save Layout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Macro Modal -->
+  <div class="modal-backdrop" id="macroModal">
+    <div class="modal">
+      <div class="card-header">
+        <h2>Add Custom Macro</h2>
+        <button class="icon-btn" onclick="closeModal('macroModal')">Close</button>
+      </div>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Button Name</label>
+          <input id="mLabel" placeholder="e.g. Spotify / Mute Discord / OneNote" />
+        </div>
+        <div class="field">
+          <label>Action Type</label>
+          <select id="mType">
+            <option value="hotkey">Keyboard Shortcut</option>
+            <option value="url">Open Website URL</option>
+            <option value="app">Launch App / Path</option>
+            <option value="action">PC Action (lock / display_off / sleep)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tile Color</label>
+          <input id="mColor" type="color" value="#2563eb" style="height:40px;" />
+        </div>
+        <div class="field full">
+          <label>Value (e.g. <code>ctrl+shift+m</code>, <code>https://...</code>, or <code>notepad.exe</code>)</label>
+          <input id="mValue" placeholder="ctrl+shift+m" />
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-secondary" onclick="closeModal('macroModal')">Cancel</button>
+        <button class="btn-primary" onclick="saveNewMacro()">Save Macro</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const ICONS = {
+      mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>',
+      voldown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
+      volup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+      mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>',
+      rewind: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6 8.5 6V6l-8.5 6z"/></svg>',
+      forward: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>',
+      maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>',
+      subtitles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="14" y2="16"/></svg>',
+      arrowleft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>',
+      arrowright: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+      x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+      scissors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/></svg>',
+      copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+      clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
+      undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>',
+      monitor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+      activity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+      layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+      lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+      zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
+    };
+
+    const DEFAULT_SETTINGS = {
+      adaptiveQuality: true,
+      usbWidth: 1600, usbFps: 24, usbQuality: 76,
+      wifiWidth: 1280, wifiFps: 20, wifiQuality: 68,
+      showCursor: true,
+      autoAudio: true,
+      fitMode: "contain",
+      penEnabled: true,
+      windowsInk: true,
+      penHover: true,
+      palmRejection: false,
+      touchMode: "direct",
+      twoFingerScroll: true,
+      mouseSens: 1.7,
+      scrollSpeed: 1.2,
+      naturalScroll: false
+    };
+
+    let settings = loadSettings();
+    let state = { media: {}, audio: {}, stats: {}, macros: [] };
+    let wakeLock = null;
+    let editMacros = false;
+    let volTimer = null;
+    let isDraggingSlider = false;
+    let pipActive = false;
+    let pipFullscreen = false;
+    let pipMonitor = 1;
+    let lastMirrorMonitor = 1;
+    let monitorCount = 1;
+    let failCount = 0;
+    let audioActiveState = false;
+    let lastPenSeenTs = 0;
+
+    function loadSettings() {
+      try {
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem("tabdeck_settings") || "{}") };
+      } catch (e) {
+        return { ...DEFAULT_SETTINGS };
+      }
+    }
+
+    function persistSettings() {
+      try { localStorage.setItem("tabdeck_settings", JSON.stringify(settings)); } catch (e) {}
+    }
+
+    function applyVisualSettings() {
+      document.getElementById("pipBox").classList.toggle("fit-cover", settings.fitMode === "cover");
+      const penBtn = document.getElementById("fsPenBtn");
+      if (penBtn) {
+        penBtn.classList.toggle("active", settings.penEnabled && settings.palmRejection);
+        penBtn.textContent = settings.palmRejection ? "Pen Only" : "Pen";
+      }
+    }
+
+    function syncSettingsUI() {
+      document.getElementById("sUsbWidth").value = String(settings.usbWidth);
+      document.getElementById("sUsbFps").value = String(settings.usbFps);
+      document.getElementById("sUsbQuality").value = String(settings.usbQuality);
+      document.getElementById("sWifiWidth").value = String(settings.wifiWidth);
+      document.getElementById("sWifiFps").value = String(settings.wifiFps);
+      document.getElementById("sWifiQuality").value = String(settings.wifiQuality);
+      document.getElementById("sFitMode").value = settings.fitMode;
+      document.getElementById("sTouchMode").value = settings.touchMode;
+      document.getElementById("sMouseSens").value = settings.mouseSens;
+      document.getElementById("sMouseSensVal").textContent = `${Number(settings.mouseSens).toFixed(1)}x`;
+      document.getElementById("sScrollSpeed").value = settings.scrollSpeed;
+      document.getElementById("sScrollSpeedVal").textContent = `${Number(settings.scrollSpeed).toFixed(1)}x`;
+
+      const swMap = {
+        swAdaptive: "adaptiveQuality",
+        swShowCursor: "showCursor",
+        swAutoAudio: "autoAudio",
+        swPenEnabled: "penEnabled",
+        swWindowsInk: "windowsInk",
+        swPenHover: "penHover",
+        swPalmReject: "palmRejection",
+        swTwoFingerScroll: "twoFingerScroll",
+        swNaturalScroll: "naturalScroll"
+      };
+      Object.entries(swMap).forEach(([elId, key]) => {
+        document.getElementById(elId)?.classList.toggle("on", !!settings[key]);
+      });
+      applyVisualSettings();
+    }
+
+    function openSettingsModal() {
+      syncSettingsUI();
+      document.getElementById("settingsModal").classList.add("open");
+    }
+
+    function switchSettingsTab(tab) {
+      ["stream", "pen", "mouse"].forEach(t => {
+        document.getElementById(`stab_${t}`).classList.toggle("active", t === tab);
+        document.getElementById(`pane_${t}`).classList.toggle("active", t === tab);
+      });
+    }
+
+    function toggleSettingBool(key, restartStream) {
+      settings[key] = !settings[key];
+      persistSettings();
+      syncSettingsUI();
+      if (restartStream && pipActive) {
+        document.getElementById("pipImg").src = buildVideoUrl();
+      }
+    }
+
+    function saveSettings(restartStream) {
+      settings.usbWidth = Number(document.getElementById("sUsbWidth").value);
+      settings.usbFps = Number(document.getElementById("sUsbFps").value);
+      settings.usbQuality = Number(document.getElementById("sUsbQuality").value);
+      settings.wifiWidth = Number(document.getElementById("sWifiWidth").value);
+      settings.wifiFps = Number(document.getElementById("sWifiFps").value);
+      settings.wifiQuality = Number(document.getElementById("sWifiQuality").value);
+      settings.fitMode = document.getElementById("sFitMode").value;
+      settings.touchMode = document.getElementById("sTouchMode").value;
+      settings.mouseSens = Number(document.getElementById("sMouseSens").value);
+      settings.scrollSpeed = Number(document.getElementById("sScrollSpeed").value);
+      document.getElementById("sMouseSensVal").textContent = `${settings.mouseSens.toFixed(1)}x`;
+      document.getElementById("sScrollSpeedVal").textContent = `${settings.scrollSpeed.toFixed(1)}x`;
+      persistSettings();
+      applyVisualSettings();
+      if (restartStream && pipActive) {
+        document.getElementById("pipImg").src = buildVideoUrl();
+      }
+    }
+
+    function quickTogglePalmReject() {
+      settings.palmRejection = !settings.palmRejection;
+      persistSettings();
+      applyVisualSettings();
+      showToast(settings.palmRejection ? "Palm Rejection ON (Pen Only)" : "Touch + S-Pen Active");
+    }
+
+    function toggleFsDockTuck() {
+      const dock = document.getElementById("fsDock");
+      const btn = document.getElementById("fsTuckBtn");
+      const tucked = dock.classList.toggle("tucked");
+      btn.innerHTML = tucked ? "&#8249;" : "&#8250;";
+      if (dock.style.left) {
+        requestAnimationFrame(() => {
+          const rect = dock.getBoundingClientRect();
+          const margin = 8;
+          const maxLeft = Math.max(margin, window.innerWidth - dock.offsetWidth - margin);
+          const maxTop = Math.max(margin, window.innerHeight - dock.offsetHeight - margin);
+          dock.style.left = `${Math.round(Math.max(margin, Math.min(maxLeft, rect.left)))}px`;
+          dock.style.top = `${Math.round(Math.max(margin, Math.min(maxTop, rect.top)))}px`;
+        });
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Low-Latency WebSocket Input (Mouse, Touch & Native Windows Ink S-Pen)
+    // -----------------------------------------------------------------------
+    let inputWs = null;
+    function connectInputWs() {
+      try {
+        const proto = location.protocol === "https:" ? "wss:" : "ws:";
+        inputWs = new WebSocket(`${proto}//${location.host}/ws/input`);
+        inputWs.onopen = () => { document.getElementById("wsBadge").textContent = "Live"; };
+        inputWs.onclose = () => {
+          document.getElementById("wsBadge").textContent = "Reconnecting";
+          setTimeout(connectInputWs, 2000);
+        };
+        inputWs.onerror = () => { try { inputWs.close(); } catch (e) {} };
+      } catch (e) {
+        setTimeout(connectInputWs, 2500);
+      }
+    }
+    function sendInput(ev) {
+      if (inputWs && inputWs.readyState === WebSocket.OPEN) {
+        inputWs.send(JSON.stringify(ev));
+      }
+    }
+    connectInputWs();
+
+    // -----------------------------------------------------------------------
+    // Laptop Mouse Pad (Uses Sensitivity, Scroll Speed & Natural Scroll Settings)
+    // -----------------------------------------------------------------------
+    (function initTouchpad() {
+      const pad = document.getElementById("touchpad");
+      let lastX = 0, lastY = 0, startX = 0, startY = 0;
+      let startTime = 0, maxFingers = 0, moved = false;
+      let lastTwoY = 0;
+
+      pad.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const n = e.touches.length;
+        maxFingers = Math.max(maxFingers, n);
+        if (n === 1) {
+          startX = lastX = e.touches[0].clientX;
+          startY = lastY = e.touches[0].clientY;
+          startTime = Date.now();
+          moved = false;
+        } else if (n === 2) {
+          lastTwoY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
+      }, { passive: false });
+
+      pad.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1 && maxFingers === 1) {
+          const x = e.touches[0].clientX;
+          const y = e.touches[0].clientY;
+          const rawDx = x - lastX;
+          const rawDy = y - lastY;
+          lastX = x; lastY = y;
+          if (Math.hypot(x - startX, y - startY) > 6) moved = true;
+          const speed = Math.hypot(rawDx, rawDy);
+          const base = Number(settings.mouseSens) || 1.7;
+          const gain = speed > 14 ? base * 1.45 : base;
+          sendInput({ t: "move", dx: rawDx * gain, dy: rawDy * gain });
+        } else if (e.touches.length === 2) {
+          const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dy = midY - lastTwoY;
+          lastTwoY = midY;
+          if (Math.abs(dy) > 2) {
+            moved = true;
+            const dir = settings.naturalScroll ? -1 : 1;
+            sendInput({ t: "scroll", dy: Math.round(dy * 4.0 * (Number(settings.scrollSpeed) || 1.2) * dir) });
+          }
+        }
+      }, { passive: false });
+
+      pad.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        if (e.touches.length === 0) {
+          const dt = Date.now() - startTime;
+          if (!moved && dt < 280) {
+            if (maxFingers === 1) sendInput({ t: "click", btn: "left" });
+            else if (maxFingers >= 2) sendInput({ t: "click", btn: "right" });
+          }
+          maxFingers = 0;
+        }
+      }, { passive: false });
+
+      const lBtn = document.getElementById("lClickBtn");
+      const rBtn = document.getElementById("rClickBtn");
+      lBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); sendInput({ t: "down", btn: "left" }); });
+      lBtn.addEventListener("pointerup", (e) => { e.preventDefault(); sendInput({ t: "up", btn: "left" }); });
+      lBtn.addEventListener("pointercancel", () => sendInput({ t: "up", btn: "left" }));
+      rBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); sendInput({ t: "click", btn: "right" }); });
+    })();
+
+    // -----------------------------------------------------------------------
+    // SuperDisplay-Style Fullscreen: S-Pen (Pressure/Hover/Tilt) + Direct Touch
+    // -----------------------------------------------------------------------
+    (function initScreenInput() {
+      const box = document.getElementById("pipBox");
+      const img = document.getElementById("pipImg");
+
+      let penDown = false;
+      let dragging = false;
+      let twoFinger = false;
+      let startX = 0, startY = 0;
+      let lastX = 0, lastY = 0;
+      let lastTwoY = 0;
+      let longPressTimer = null;
+      let rightClicked = false;
+      let touchMoved = false;
+      let touchStartTime = 0;
+
+      function isUiTarget(target) {
+        return !!(target && (
+          target.closest(".fs-corner-dock") ||
+          target.closest(".fs-key-bar") ||
+          target.closest(".pip-mini-bar") ||
+          target.closest(".modal-backdrop")
+        ));
+      }
+
+      function getNormCoords(clientX, clientY) {
+        const rect = img.getBoundingClientRect();
+        const nw = img.naturalWidth || 16;
+        const nh = img.naturalHeight || 9;
+        const boxAspect = rect.width / rect.height;
+        const imgAspect = nw / nh;
+        let rw = rect.width, rh = rect.height, ox = rect.left, oy = rect.top;
+        if (settings.fitMode === "cover") {
+          if (boxAspect > imgAspect) {
+            rh = rect.width / imgAspect;
+            oy = rect.top + (rect.height - rh) / 2;
+          } else {
+            rw = rect.height * imgAspect;
+            ox = rect.left + (rect.width - rw) / 2;
+          }
+        } else {
+          if (boxAspect > imgAspect) {
+            rw = rect.height * imgAspect;
+            ox = rect.left + (rect.width - rw) / 2;
+          } else {
+            rh = rect.width / imgAspect;
+            oy = rect.top + (rect.height - rh) / 2;
+          }
+        }
+        const rx = Math.max(0, Math.min(1, (clientX - ox) / rw));
+        const ry = Math.max(0, Math.min(1, (clientY - oy) / rh));
+        return { rx, ry };
+      }
+
+      function sendPen(action, e) {
+        const { rx, ry } = getNormCoords(e.clientX, e.clientY);
+        const barrel = ((e.buttons & 2) !== 0) || e.button === 2;
+        const eraser = ((e.buttons & 32) !== 0) || e.button === 5;
+        sendInput({
+          t: "pen",
+          a: action,
+          mon: pipMonitor,
+          rx, ry,
+          p: e.pressure || (action === "down" || action === "move" ? 0.5 : 0),
+          tx: Math.round(e.tiltX || 0),
+          ty: Math.round(e.tiltY || 0),
+          barrel,
+          eraser,
+          ink: !!settings.windowsInk
+        });
+      }
+
+      // W3C Pointer Events for Samsung S-Pen (Hover + Pressure + Tilt + Barrel)
+      box.addEventListener("pointerdown", (e) => {
+        if (isUiTarget(e.target)) return;
+        if (e.pointerType !== "pen") return;
+        lastPenSeenTs = Date.now();
+        if (!pipFullscreen) { enterVideoFullscreen(); return; }
+        if (!settings.penEnabled) return;
+        e.preventDefault();
+        penDown = true;
+        sendPen("down", e);
+      });
+
+      box.addEventListener("pointermove", (e) => {
+        if (isUiTarget(e.target)) return;
+        if (e.pointerType !== "pen") return;
+        lastPenSeenTs = Date.now();
+        if (!pipFullscreen || !settings.penEnabled) return;
+        e.preventDefault();
+        if (penDown || (e.buttons & 1) !== 0) {
+          penDown = true;
+          sendPen("move", e);
+        } else if (settings.penHover) {
+          sendPen("hover", e);
+        }
+      });
+
+      box.addEventListener("pointerup", (e) => {
+        if (e.pointerType !== "pen") return;
+        if (!pipFullscreen || !settings.penEnabled) return;
+        if (penDown) {
+          e.preventDefault();
+          penDown = false;
+          sendPen("up", e);
+        }
+      });
+
+      box.addEventListener("pointerleave", (e) => {
+        if (e.pointerType !== "pen") return;
+        if (penDown) {
+          penDown = false;
+          sendPen("up", e);
+        }
+        if (pipFullscreen && settings.penEnabled) {
+          sendPen("leave", e);
+        }
+      });
+
+      function hasStylusTouch(ev) {
+        const list = ev.touches && ev.touches.length ? ev.touches : ev.changedTouches;
+        if (!list) return false;
+        for (let i = 0; i < list.length; i++) {
+          if (list[i].touchType === "stylus") return true;
+        }
+        return false;
+      }
+
+      // Finger Touch Handling (Never intercepts S-Pen stylus touches or UI Dock!)
+      box.addEventListener("touchstart", (e) => {
+        if (isUiTarget(e.target)) return;
+        if (hasStylusTouch(e)) {
+          lastPenSeenTs = Date.now();
+          e.preventDefault();
+          return;
+        }
+        if (!pipFullscreen) {
+          enterVideoFullscreen();
+          return;
+        }
+        // Ignore finger/palm touches if S-Pen was just active (<550ms) or touch is disabled
+        const penRecentlyActive = (Date.now() - lastPenSeenTs) < 550;
+        if (settings.touchMode === "off" && !settings.twoFingerScroll) return;
+
+        e.preventDefault();
+        clearTimeout(longPressTimer);
+        rightClicked = false;
+
+        if (e.touches.length === 1) {
+          if (settings.palmRejection || penRecentlyActive || settings.touchMode === "off") return;
+          twoFinger = false;
+          dragging = true;
+          touchMoved = false;
+          touchStartTime = Date.now();
+          const t = e.touches[0];
+          startX = lastX = t.clientX;
+          startY = lastY = t.clientY;
+
+          if (settings.touchMode === "direct") {
+            const { rx, ry } = getNormCoords(t.clientX, t.clientY);
+            sendInput({ t: "abs_down", mon: pipMonitor, rx, ry, btn: "left" });
+            longPressTimer = setTimeout(() => {
+              if (dragging && !twoFinger) {
+                rightClicked = true;
+                dragging = false;
+                sendInput({ t: "up", btn: "left" });
+                sendInput({ t: "abs_click", mon: pipMonitor, rx, ry, btn: "right" });
+              }
+            }, 480);
+          }
+        } else if (e.touches.length >= 2) {
+          if (!settings.twoFingerScroll && settings.palmRejection) return;
+          clearTimeout(longPressTimer);
+          if (dragging && settings.touchMode === "direct") {
+            dragging = false;
+            sendInput({ t: "up", btn: "left" });
+          }
+          twoFinger = true;
+          lastTwoY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
+      }, { passive: false });
+
+      box.addEventListener("touchmove", (e) => {
+        if (isUiTarget(e.target) || !pipFullscreen) return;
+        if (hasStylusTouch(e)) { e.preventDefault(); return; }
+        if (!dragging && !twoFinger) return;
+        e.preventDefault();
+
+        if (e.touches.length === 1 && dragging && !rightClicked) {
+          const t = e.touches[0];
+          if (Math.hypot(t.clientX - startX, t.clientY - startY) > 10) {
+            clearTimeout(longPressTimer);
+            touchMoved = true;
+          }
+          if (settings.touchMode === "direct") {
+            const { rx, ry } = getNormCoords(t.clientX, t.clientY);
+            sendInput({ t: "abs_move", mon: pipMonitor, rx, ry });
+          } else if (settings.touchMode === "trackpad") {
+            const dx = t.clientX - lastX;
+            const dy = t.clientY - lastY;
+            lastX = t.clientX; lastY = t.clientY;
+            const gain = Number(settings.mouseSens) || 1.7;
+            sendInput({ t: "move", dx: dx * gain, dy: dy * gain });
+          }
+        } else if (e.touches.length >= 2 && twoFinger) {
+          const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dy = midY - lastTwoY;
+          lastTwoY = midY;
+          if (Math.abs(dy) > 2) {
+            const dir = settings.naturalScroll ? -1 : 1;
+            sendInput({ t: "scroll", dy: Math.round(dy * 4.0 * (Number(settings.scrollSpeed) || 1.2) * dir) });
+          }
+        }
+      }, { passive: false });
+
+      box.addEventListener("touchend", (e) => {
+        if (isUiTarget(e.target) || !pipFullscreen) return;
+        if (hasStylusTouch(e)) { e.preventDefault(); return; }
+        clearTimeout(longPressTimer);
+        if (e.touches.length === 0) {
+          if (dragging && !rightClicked) {
+            if (settings.touchMode === "direct") {
+              const t = e.changedTouches[0];
+              const { rx, ry } = getNormCoords(t.clientX, t.clientY);
+              sendInput({ t: "abs_up", mon: pipMonitor, rx, ry, btn: "left" });
+            } else if (settings.touchMode === "trackpad" && !touchMoved && (Date.now() - touchStartTime) < 280) {
+              sendInput({ t: "click", btn: "left" });
+            }
+          }
+          dragging = false;
+          twoFinger = false;
+          rightClicked = false;
+        }
+      }, { passive: false });
+    })();
+
+    // -----------------------------------------------------------------------
+    // Native Android Bridge, Collapsible Cards & Streaming Profiles
+    // -----------------------------------------------------------------------
+    const isNativeApp = !!window.TabDeckNative;
+    if (isNativeApp) {
+      document.getElementById("serverBtn").style.display = "inline-flex";
+      const gBtn = document.getElementById("guideSettingsBtn");
+      if (gBtn) gBtn.style.display = "inline-flex";
+      document.getElementById("fullBtn").classList.add("active");
+      if (window.TabDeckNative.isKeepScreenOn()) {
+        document.getElementById("awakeBtn").classList.add("active");
+      }
+      if (window.TabDeckNative.isPcAudioStreaming && window.TabDeckNative.isPcAudioStreaming()) {
+        updateStreamUI(true);
+      }
+    }
+
+    function isUsbMode() {
+      if (isNativeApp && window.TabDeckNative.isConnectedViaUsb) {
+        return !!window.TabDeckNative.isConnectedViaUsb();
+      }
+      return location.hostname === "127.0.0.1" || location.hostname === "localhost";
+    }
+
+    function updateStreamUI(active) {
+      audioActiveState = !!active;
+      const btn = document.getElementById("streamBtn");
+      const lbl = document.getElementById("streamBtnLabel");
+      btn.classList.toggle("streaming", !!active);
+      lbl.textContent = active ? "Tab Audio ON" : "Tab Speaker";
+    }
+    window.onNativeAudioState = updateStreamUI;
+
+    function buildVideoUrl() {
+      const usb = isUsbMode();
+      const w = usb ? settings.usbWidth : settings.wifiWidth;
+      const fps = usb ? settings.usbFps : settings.wifiFps;
+      const q = usb ? settings.usbQuality : settings.wifiQuality;
+      const cur = settings.showCursor ? 1 : 0;
+      const adap = settings.adaptiveQuality ? 1 : 0;
+      const conn = usb ? "usb" : "wifi";
+      return `/api/video/stream?monitor=${pipMonitor}&width=${w}&fps=${fps}&quality=${q}&cursor=${cur}&adaptive=${adap}&conn=${conn}&t=${Date.now()}`;
+    }
+
+    function startPipVideo(autoAudio, goFull = false) {
+      pipActive = true;
+      const box = document.getElementById("pipBox");
+      const img = document.getElementById("pipImg");
+      img.onerror = () => {
+        if (pipActive) setTimeout(() => { if (pipActive) img.src = buildVideoUrl(); }, 1500);
+      };
+      box.classList.add("active");
+      img.src = buildVideoUrl();
+      document.getElementById("pipToggleBtn").classList.add("active");
+      document.getElementById("pipToggleBtn").textContent = "Mini ON";
+      const shouldAudio = (autoAudio === undefined) ? settings.autoAudio : autoAudio;
+      if (shouldAudio && isNativeApp && window.TabDeckNative.startPcAudioStream && !audioActiveState) {
+        updateStreamUI(window.TabDeckNative.startPcAudioStream());
+      }
+      api("/api/video/monitors").then(r => {
+        monitorCount = (r.monitors || []).length || 1;
+        updateMonitorButtons();
+      }).catch(() => {});
+      applyVisualSettings();
+      if (goFull) enterVideoFullscreen();
+    }
+
+    function stopPipVideo() {
+      if (pipFullscreen) exitVideoFullscreen();
+      pipActive = false;
+      const box = document.getElementById("pipBox");
+      const img = document.getElementById("pipImg");
+      box.classList.remove("active");
+      img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      document.getElementById("pipToggleBtn").classList.remove("active");
+      document.getElementById("pipToggleBtn").textContent = "Mini Screen";
+    }
+
+    function toggleCard(id, forceOpen = false) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (forceOpen) el.classList.remove("collapsed");
+      else el.classList.toggle("collapsed");
+      try {
+        const saved = JSON.parse(localStorage.getItem("tabdeck_collapsed") || "{}");
+        saved[id] = el.classList.contains("collapsed");
+        localStorage.setItem("tabdeck_collapsed", JSON.stringify(saved));
+      } catch (e) {}
+    }
+    (function restoreCollapsedCards() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("tabdeck_collapsed") || "{}");
+        Object.entries(saved).forEach(([id, isCol]) => {
+          if (isCol) document.getElementById(id)?.classList.add("collapsed");
+        });
+      } catch (e) {}
+    })();
+
+    function togglePipPreview() {
+      if (pipActive) stopPipVideo();
+      else {
+        toggleCard("cardMedia", true);
+        startPipVideo(undefined, false);
+      }
+    }
+
+    function openFullscreenTouch() {
+      toggleCard("cardMedia", true);
+      if (!pipActive) startPipVideo(undefined, true);
+      else enterVideoFullscreen();
+    }
+
+    function updateMonitorButtons() {
+      const monBtn = document.getElementById("pipMonBtn");
+      const thirdBtn = document.getElementById("fsThirdBtn");
+      if (monBtn) {
+        monBtn.style.display = monitorCount > 1 ? "" : "none";
+        monBtn.textContent = pipMonitor >= 3 ? "S3 (Ext)" : `S${pipMonitor}`;
+      }
+      if (thirdBtn) {
+        const onThird = pipMonitor >= 3;
+        thirdBtn.classList.toggle("active", onThird);
+        thirdBtn.textContent = onThird ? "Mirror" : "3rd Scr";
+      }
+    }
+
+    function cycleMonitor() {
+      const mirrorMax = Math.min(2, Math.max(1, monitorCount));
+      pipMonitor = (pipMonitor >= mirrorMax) ? 1 : (pipMonitor + 1);
+      lastMirrorMonitor = pipMonitor;
+      updateMonitorButtons();
+      if (pipActive) document.getElementById("pipImg").src = buildVideoUrl();
+      showToast(`Mirroring Screen ${pipMonitor}`);
+    }
+
+    async function toggleThirdScreenMode() {
+      try {
+        const r = await api("/api/video/monitors");
+        monitorCount = (r.monitors || []).length || 1;
+      } catch (e) {}
+
+      if (pipMonitor >= 3) {
+        // Switch back from 3rd screen to Mirroring mode
+        pipMonitor = lastMirrorMonitor || 1;
+        updateMonitorButtons();
+        if (pipActive) document.getElementById("pipImg").src = buildVideoUrl();
+        showToast(`Switched to Mirror Mode (Screen ${pipMonitor})`);
+        return;
+      }
+
+      if (monitorCount >= 3) {
+        lastMirrorMonitor = pipMonitor;
+        pipMonitor = 3;
+        updateMonitorButtons();
+        if (pipActive) document.getElementById("pipImg").src = buildVideoUrl();
+        showToast("Switched to 3rd Screen (Extended Display)");
+      } else {
+        showToast("No 3rd Windows display active yet — install Virtual Display Driver to enable 3rd Screen");
+      }
+    }
+
+    function enterVideoFullscreen() {
+      pipFullscreen = true;
+      document.getElementById("pipBox").classList.add("fullscreen");
+      applyVisualSettings();
+      requestAnimationFrame(() => applySavedFsDockPos());
+      if (isNativeApp && window.TabDeckNative.setVideoFullscreen) {
+        window.TabDeckNative.setVideoFullscreen(true);
+      }
+    }
+
+    function exitVideoFullscreen() {
+      closeFsKeyboard();
+      pipFullscreen = false;
+      document.getElementById("pipBox").classList.remove("fullscreen");
+      if (isNativeApp && window.TabDeckNative.setVideoFullscreen) {
+        window.TabDeckNative.setVideoFullscreen(false);
+      }
+    }
+    window.exitVideoFullscreen = exitVideoFullscreen;
+
+    // -----------------------------------------------------------------------
+    // Fullscreen Android Keyboard Input -> Laptop (Live Typing + Quick Keys)
+    // -----------------------------------------------------------------------
+    const KB_SENTINEL = "\u200B";
+    let kbPrevVal = KB_SENTINEL;
+    let kbComposing = false;
+
+    function openFsKeyboard() {
+      const bar = document.getElementById("fsKeyBar");
+      const inp = document.getElementById("fsTypeInput");
+      const btn = document.getElementById("fsKbBtn");
+      if (!bar || !inp) return;
+      bar.classList.add("open");
+      btn?.classList.add("active");
+      kbPrevVal = KB_SENTINEL;
+      inp.value = KB_SENTINEL;
+      setTimeout(() => {
+        inp.focus();
+        try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_) {}
+      }, 30);
+    }
+
+    function closeFsKeyboard() {
+      const bar = document.getElementById("fsKeyBar");
+      const inp = document.getElementById("fsTypeInput");
+      const btn = document.getElementById("fsKbBtn");
+      if (bar) bar.classList.remove("open");
+      btn?.classList.remove("active");
+      if (inp) inp.blur();
+    }
+
+    function toggleFsKeyboard() {
+      const bar = document.getElementById("fsKeyBar");
+      if (bar && bar.classList.contains("open")) closeFsKeyboard();
+      else openFsKeyboard();
+    }
+
+    function sendPcKey(k, ctrl = false, alt = false, shift = false) {
+      sendInput({ t: "key", k, ctrl, alt, shift });
+      const inp = document.getElementById("fsTypeInput");
+      if (inp && document.getElementById("fsKeyBar")?.classList.contains("open")) {
+        inp.focus();
+      }
+    }
+
+    (function initFsKeyboardInput() {
+      const inp = document.getElementById("fsTypeInput");
+      if (!inp) return;
+
+      function flushDiff() {
+        const cur = inp.value || "";
+        // If user pressed Backspace and wiped sentinel, emit PC Backspace and restore sentinel
+        if (cur.length === 0) {
+          sendInput({ t: "key", k: "backspace" });
+          inp.value = KB_SENTINEL;
+          kbPrevVal = KB_SENTINEL;
+          return;
+        }
+        // Compute longest common prefix between kbPrevVal and cur
+        let p = 0;
+        const lim = Math.min(kbPrevVal.length, cur.length);
+        while (p < lim && kbPrevVal[p] === cur[p]) p++;
+
+        const deleted = kbPrevVal.length - p;
+        const added = cur.slice(p).replace(/\u200B/g, "");
+
+        for (let i = 0; i < deleted; i++) {
+          sendInput({ t: "key", k: "backspace" });
+        }
+        if (added.length > 0) {
+          sendInput({ t: "text", s: added });
+        }
+
+        // Keep input buffer short so Android keyboard never lags
+        if (cur.length > 36) {
+          inp.value = KB_SENTINEL;
+          kbPrevVal = KB_SENTINEL;
+        } else {
+          kbPrevVal = cur;
+        }
+      }
+
+      inp.addEventListener("compositionstart", () => { kbComposing = true; });
+      inp.addEventListener("compositionend", () => { kbComposing = false; flushDiff(); });
+      inp.addEventListener("input", () => { if (!kbComposing) flushDiff(); });
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendInput({ t: "key", k: "enter" });
+          inp.value = KB_SENTINEL;
+          kbPrevVal = KB_SENTINEL;
+        } else if (e.key === "Backspace" && (inp.value === KB_SENTINEL || inp.value === "")) {
+          e.preventDefault();
+          sendInput({ t: "key", k: "backspace" });
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          closeFsKeyboard();
+        }
+      });
+
+      // Keep keyboard bar hugging directly above Android's soft keyboard in immersive fullscreen
+      const bar = document.getElementById("fsKeyBar");
+      function syncKeyBarViewport() {
+        if (!bar || !window.visualViewport) return;
+        const vv = window.visualViewport;
+        const kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        bar.style.bottom = `${Math.round(kbH + 8)}px`;
+      }
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", syncKeyBarViewport);
+        window.visualViewport.addEventListener("scroll", syncKeyBarViewport);
+      }
+    })();
+
+    // -----------------------------------------------------------------------
+    // Multi Control 2D Spatial Drag-and-Drop Studio
+    // -----------------------------------------------------------------------
+    let mcLayout = { enabled: true, monitors: [], devices: [] };
+    let mcSelectedId = null;
+    let mcTransform = { scale: 0.12, ox: 40, oy: 40 };
+
+    function renderMultiControl(mc) {
+      if (!mc) return;
+      document.getElementById("swMcEnabled")?.classList.toggle("on", !!mc.enabled);
+      const line = document.getElementById("mcStatusLine");
+      if (line) {
+        if (mc.active_on_tablet) {
+          line.textContent = `ACTIVE on ${mc.active_device_name || "Device"} (${mc.connected_via || "Connected"})`;
+        } else if (mc.online_count > 0) {
+          line.textContent = `Ready · ${mc.online_count}/${mc.device_count} device online (${mc.connected_via})`;
+        } else {
+          line.textContent = `Waiting for device (${mc.device_count || 0} configured)`;
+        }
+      }
+    }
+
+    async function toggleMcEnabled() {
+      const cur = state.multi_control?.enabled ?? true;
+      const res = await api("/api/multicontrol/layout", "POST", { enabled: !cur });
+      mcLayout = res;
+      state.multi_control = await api("/api/multicontrol/status");
+      renderMultiControl(state.multi_control);
+      showToast(res.enabled ? "Multi Control ON" : "Multi Control OFF");
+    }
+
+    async function toggleMcNow(deviceId = null) {
+      const mc = await api("/api/multicontrol/toggle", "POST", { device_id: deviceId });
+      state.multi_control = mc;
+      renderMultiControl(mc);
+      showToast(mc.active_on_tablet ? `Controlling ${mc.active_device_name || "Device"}` : "Returned to Laptop");
+    }
+
+    async function openMcLayoutModal() {
+      document.getElementById("mcLayoutModal").classList.add("open");
+      mcLayout = await api("/api/multicontrol/layout");
+      if (!mcSelectedId && mcLayout.devices.length) mcSelectedId = mcLayout.devices[0].id;
+      requestAnimationFrame(() => renderMcStage());
+    }
+
+    function toggleAddDeviceBar() {
+      document.getElementById("mcPhoneSetupBar")?.classList.remove("open");
+      document.getElementById("mcAddBar")?.classList.toggle("open");
+    }
+
+    function togglePhoneSetupBar() {
+      document.getElementById("mcAddBar")?.classList.remove("open");
+      const open = document.getElementById("mcPhoneSetupBar")?.classList.toggle("open");
+      if (open) refreshAdbUsbDevices();
+    }
+
+    async function refreshAdbUsbDevices() {
+      const box = document.getElementById("mcUsbBtns");
+      if (!box) return;
+      try {
+        const res = await api("/api/multicontrol/adb-devices");
+        const devs = res.devices || [];
+        if (!devs.length) {
+          box.innerHTML = '<span style="font-size:0.74rem;color:var(--muted);">No USB devices found</span> <button class="btn-secondary" style="padding:5px 10px;font-size:0.75rem;" onclick="refreshAdbUsbDevices()">Rescan</button>';
+          return;
+        }
+        box.innerHTML = devs.map(d =>
+          `<button class="btn-primary" style="padding:5px 10px;font-size:0.75rem;" onclick="runUsbPhoneSetup('${d.serial.replace(/'/g, "\\'")}', '${d.model.replace(/'/g, "\\'")}')">Deploy to ${d.model}</button>`
+        ).join("") + ' <button class="btn-secondary" style="padding:5px 10px;font-size:0.75rem;" onclick="refreshAdbUsbDevices()">Rescan</button>';
+      } catch (e) {}
+    }
+
+    async function runWirelessPhoneSetup() {
+      const connect_addr = document.getElementById("mcWConnect").value.trim();
+      const pair_addr = document.getElementById("mcWPairAddr").value.trim();
+      const pair_code = document.getElementById("mcWPairCode").value.trim();
+      const name = document.getElementById("mcWName").value.trim() || "Galaxy S24";
+      if (!connect_addr) { showToast("Enter Wireless Debugging IP:Port"); return; }
+      showToast("Connecting & starting non-root UHID...");
+      const res = await api("/api/multicontrol/setup-wireless", "POST", { connect_addr, pair_addr, pair_code, name, kind: "phone", orientation: "portrait" });
+      if (!res.ok) { showToast(res.error || "Setup failed"); return; }
+      if (res.layout) { mcLayout = res.layout; renderMcStage(); }
+      document.getElementById("mcPhoneSetupBar")?.classList.remove("open");
+      showToast(res.message || "Phone ready over Wi-Fi!");
+    }
+
+    async function runUsbPhoneSetup(serial, model) {
+      showToast(`Deploying non-root UHID to ${model}...`);
+      const res = await api("/api/multicontrol/setup-usb", "POST", { serial, name: model, kind: "phone", orientation: "portrait" });
+      if (!res.ok) { showToast(res.error || "USB deploy failed"); return; }
+      if (res.layout) { mcLayout = res.layout; renderMcStage(); }
+      document.getElementById("mcPhoneSetupBar")?.classList.remove("open");
+      showToast(`${model} ready! You can now unplug and place it on your wireless charger.`);
+    }
+
+    async function submitAddMcDevice() {
+      const name = document.getElementById("mcNewName").value.trim() || "My Phone";
+      const ip = document.getElementById("mcNewIp").value.trim();
+      const kind = document.getElementById("mcNewKind").value;
+      const orientation = document.getElementById("mcNewOrient").value;
+      mcLayout = await api("/api/multicontrol/devices", "POST", { name, ip, kind, orientation });
+      document.getElementById("mcNewName").value = "";
+      document.getElementById("mcNewIp").value = "";
+      document.getElementById("mcAddBar").classList.remove("open");
+      if (mcLayout.devices.length) mcSelectedId = mcLayout.devices[mcLayout.devices.length - 1].id;
+      renderMcStage();
+      showToast(`Added "${name}" — drag it beside any monitor!`);
+    }
+
+    function getSelectedMcDev() {
+      return (mcLayout.devices || []).find(d => d.id === mcSelectedId) || null;
+    }
+
+    function syncMcInspector() {
+      const insp = document.getElementById("mcInspector");
+      const dev = getSelectedMcDev();
+      if (!insp || !dev) { if (insp) insp.style.display = "none"; return; }
+      insp.style.display = "grid";
+      document.getElementById("mcSelName").value = dev.name || "";
+      document.getElementById("mcSelIp").value = dev.ip || "";
+      document.getElementById("mcRotateBtn").textContent = dev.orientation === "portrait" ? "Portrait ↻" : "Landscape ↻";
+      const sens = Number(dev.sensitivity || 1.25);
+      document.getElementById("mcSelSens").value = sens;
+      document.getElementById("mcSelSensVal").textContent = `${sens.toFixed(2)}x`;
+      const delBtn = document.getElementById("mcDelBtn");
+      if (delBtn) delBtn.style.display = (mcLayout.devices || []).length <= 1 ? "none" : "";
+    }
+
+    function updateSelectedMcField() {
+      const dev = getSelectedMcDev();
+      if (!dev) return;
+      dev.name = document.getElementById("mcSelName").value.trim() || dev.name;
+      dev.ip = document.getElementById("mcSelIp").value.trim();
+      renderMcStage();
+      saveMcLayout(false);
+    }
+
+    function updateSelectedMcSens(val) {
+      const dev = getSelectedMcDev();
+      if (!dev) return;
+      dev.sensitivity = Number(val);
+      document.getElementById("mcSelSensVal").textContent = `${dev.sensitivity.toFixed(2)}x`;
+    }
+
+    function rotateSelectedMcDevice() {
+      const dev = getSelectedMcDev();
+      if (!dev) return;
+      dev.orientation = dev.orientation === "portrait" ? "landscape" : "portrait";
+      const oldW = dev.width, oldH = dev.height;
+      dev.width = oldH; dev.height = oldW;
+      const oldSW = dev.screen_w, oldSH = dev.screen_h;
+      dev.screen_w = oldSH; dev.screen_h = oldSW;
+      renderMcStage();
+      saveMcLayout(false);
+    }
+
+    function switchToSelectedMcDevice() {
+      if (mcSelectedId) toggleMcNow(mcSelectedId);
+    }
+
+    async function deleteSelectedMcDevice() {
+      if (!mcSelectedId || (mcLayout.devices || []).length <= 1) return;
+      mcLayout = await api(`/api/multicontrol/devices/${mcSelectedId}`, "DELETE");
+      mcSelectedId = mcLayout.devices.length ? mcLayout.devices[0].id : null;
+      renderMcStage();
+      showToast("Device removed");
+    }
+
+    async function saveMcLayout(notify = true) {
+      mcLayout = await api("/api/multicontrol/layout", "POST", {
+        enabled: mcLayout.enabled,
+        devices: mcLayout.devices
+      });
+      renderMcStage();
+      if (notify) showToast("Multi Control layout saved!");
+    }
+
+    function snapDevicePosition(dev, rawX, rawY) {
+      const anchors = [
+        ...(mcLayout.monitors || []),
+        ...(mcLayout.devices || []).filter(o => o.id !== dev.id)
+      ];
+      const snapDist = 260; // world px (~28 screen px)
+      let x = rawX, y = rawY;
+      let bestDx = snapDist + 1, bestDy = snapDist + 1;
+      let snapX = x, snapY = y;
+
+      for (const a of anchors) {
+        const ax1 = a.x, ax2 = a.x + a.width;
+        const ay1 = a.y, ay2 = a.y + a.height;
+
+        // Horizontal edge snaps (dev left -> a right, dev right -> a left, or align left/right)
+        const vOverlap = (y + dev.height > ay1 - snapDist) && (y < ay2 + snapDist);
+        if (vOverlap) {
+          for (const candX of [ax2, ax1 - dev.width, ax1, ax2 - dev.width]) {
+            const d = Math.abs(x - candX);
+            if (d < bestDx) { bestDx = d; snapX = candX; }
+          }
+        }
+        // Vertical edge snaps (dev top -> a bottom, dev bottom -> a top, or align top/bottom)
+        const hOverlap = (x + dev.width > ax1 - snapDist) && (x < ax2 + snapDist);
+        if (hOverlap) {
+          for (const candY of [ay2, ay1 - dev.height, ay1, ay2 - dev.height]) {
+            const d = Math.abs(y - candY);
+            if (d < bestDy) { bestDy = d; snapY = candY; }
+          }
+        }
+      }
+      return { x: Math.round(snapX), y: Math.round(snapY) };
+    }
+
+    function computeSharedPortals() {
+      const portals = [];
+      const mons = mcLayout.monitors || [];
+      const devs = (mcLayout.devices || []).filter(d => d.enabled);
+      const tol = 50;
+
+      const pairs = [];
+      for (const m of mons) for (const d of devs) pairs.push([m, d]);
+      for (let i = 0; i < devs.length; i++) for (let j = i + 1; j < devs.length; j++) pairs.push([devs[i], devs[j]]);
+
+      for (const [a, b] of pairs) {
+        // Horizontal seam (top/bottom touching)
+        const overlapX1 = Math.max(a.x, b.x);
+        const overlapX2 = Math.min(a.x + a.width, b.x + b.width);
+        if (overlapX2 - overlapX1 > 60) {
+          if (Math.abs((a.y + a.height) - b.y) <= tol) {
+            portals.push({ dir: "h", x: overlapX1, y: b.y, len: overlapX2 - overlapX1 });
+          } else if (Math.abs((b.y + b.height) - a.y) <= tol) {
+            portals.push({ dir: "h", x: overlapX1, y: a.y, len: overlapX2 - overlapX1 });
+          }
+        }
+        // Vertical seam (left/right touching)
+        const overlapY1 = Math.max(a.y, b.y);
+        const overlapY2 = Math.min(a.y + a.height, b.y + b.height);
+        if (overlapY2 - overlapY1 > 60) {
+          if (Math.abs((a.x + a.width) - b.x) <= tol) {
+            portals.push({ dir: "v", x: b.x, y: overlapY1, len: overlapY2 - overlapY1 });
+          } else if (Math.abs((b.x + b.width) - a.x) <= tol) {
+            portals.push({ dir: "v", x: a.x, y: overlapY1, len: overlapY2 - overlapY1 });
+          }
+        }
+      }
+      return portals;
+    }
+
+    function renderMcStage(keepTransform = false) {
+      const stage = document.getElementById("mcStage");
+      if (!stage) return;
+      const items = [...(mcLayout.monitors || []), ...(mcLayout.devices || [])];
+      if (!items.length) return;
+
+      const sw = stage.clientWidth || 780;
+      const sh = stage.clientHeight || 330;
+
+      if (!keepTransform) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const it of items) {
+          minX = Math.min(minX, it.x);
+          minY = Math.min(minY, it.y);
+          maxX = Math.max(maxX, it.x + it.width);
+          maxY = Math.max(maxY, it.y + it.height);
+        }
+        // Leave generous breathing room around all sides so users can drag anywhere
+        const padWorld = 650;
+        const worldW = Math.max(2400, (maxX - minX) + padWorld * 2);
+        const worldH = Math.max(1800, (maxY - minY) + padWorld * 2);
+        const scale = Math.min((sw - 24) / worldW, (sh - 24) / worldH);
+        const cxWorld = (minX + maxX) / 2;
+        const cyWorld = (minY + maxY) / 2;
+        mcTransform = { scale, ox: sw / 2 - cxWorld * scale, oy: sh / 2 - cyWorld * scale };
+      }
+
+      const { scale, ox, oy } = mcTransform;
+      stage.innerHTML = "";
+
+      // Render physical Windows Monitors (fixed reference)
+      for (const m of (mcLayout.monitors || [])) {
+        const el = document.createElement("div");
+        el.className = "mc-node win";
+        el.style.left = `${ox + m.x * scale}px`;
+        el.style.top = `${oy + m.y * scale}px`;
+        el.style.width = `${m.width * scale}px`;
+        el.style.height = `${m.height * scale}px`;
+        el.innerHTML = `<div class="mc-node-title">${m.name}</div><div class="mc-node-sub">${m.width}&times;${m.height}</div>`;
+        stage.appendChild(el);
+      }
+
+      // Render draggable Android Devices
+      for (const d of (mcLayout.devices || [])) {
+        const el = document.createElement("div");
+        el.className = `mc-node dev ${d.online ? "" : "offline"} ${d.enabled ? "" : "disabled"} ${d.id === mcSelectedId ? "selected" : ""}`;
+        el.style.left = `${ox + d.x * scale}px`;
+        el.style.top = `${oy + d.y * scale}px`;
+        el.style.width = `${d.width * scale}px`;
+        el.style.height = `${d.height * scale}px`;
+        el.innerHTML = `
+          <div class="mc-node-title">${d.name}</div>
+          <div class="mc-node-sub">${d.screen_w}&times;${d.screen_h}</div>
+          <div class="mc-node-badge"><span class="mc-dot ${d.online ? "" : "off"}"></span>${d.online ? (d.connected_via || "Online") : (d.ip || "Offline")}</div>
+        `;
+
+        el.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          mcSelectedId = d.id;
+          syncMcInspector();
+          el.classList.add("dragging");
+          try { el.setPointerCapture(e.pointerId); } catch (_) {}
+
+          const startClientX = e.clientX;
+          const startClientY = e.clientY;
+          const origX = d.x;
+          const origY = d.y;
+
+          const onMove = (ev) => {
+            const rawX = origX + (ev.clientX - startClientX) / mcTransform.scale;
+            const rawY = origY + (ev.clientY - startClientY) / mcTransform.scale;
+            const snapped = snapDevicePosition(d, rawX, rawY);
+            d.x = snapped.x;
+            d.y = snapped.y;
+            el.style.left = `${mcTransform.ox + d.x * mcTransform.scale}px`;
+            el.style.top = `${mcTransform.oy + d.y * mcTransform.scale}px`;
+            // Redraw live portal glow lines
+            stage.querySelectorAll(".mc-portal").forEach(p => p.remove());
+            drawPortals(stage);
+          };
+
+          const onUp = () => {
+            el.classList.remove("dragging");
+            el.removeEventListener("pointermove", onMove);
+            el.removeEventListener("pointerup", onUp);
+            el.removeEventListener("pointercancel", onUp);
+            saveMcLayout(false);
+          };
+
+          el.addEventListener("pointermove", onMove);
+          el.addEventListener("pointerup", onUp);
+          el.addEventListener("pointercancel", onUp);
+        });
+
+        stage.appendChild(el);
+      }
+
+      drawPortals(stage);
+      syncMcInspector();
+    }
+
+    function drawPortals(stage) {
+      const { scale, ox, oy } = mcTransform;
+      for (const p of computeSharedPortals()) {
+        const line = document.createElement("div");
+        line.className = "mc-portal";
+        if (p.dir === "h") {
+          line.style.left = `${ox + p.x * scale}px`;
+          line.style.top = `${oy + p.y * scale - 2}px`;
+          line.style.width = `${p.len * scale}px`;
+          line.style.height = "4px";
+        } else {
+          line.style.left = `${ox + p.x * scale - 2}px`;
+          line.style.top = `${oy + p.y * scale}px`;
+          line.style.width = "4px";
+          line.style.height = `${p.len * scale}px`;
+        }
+        stage.appendChild(line);
+      }
+    }
+
+    // Long-Press to Move Fullscreen Button Menu Anywhere on Screen
+    let applySavedFsDockPos = () => {};
+    (function initFsDockDrag() {
+      const dock = document.getElementById("fsDock");
+      if (!dock) return;
+
+      let holdTimer = null;
+      let isDragging = false;
+      let suppressClickUntil = 0;
+      let activePointerId = null;
+      let downX = 0, downY = 0;
+      let grabOffsetX = 0, grabOffsetY = 0;
+
+      function clampAndPlace(left, top) {
+        const margin = 8;
+        const w = dock.offsetWidth || 60;
+        const h = dock.offsetHeight || 48;
+        const maxLeft = Math.max(margin, window.innerWidth - w - margin);
+        const maxTop = Math.max(margin, window.innerHeight - h - margin);
+        const cx = Math.max(margin, Math.min(maxLeft, left));
+        const cy = Math.max(margin, Math.min(maxTop, top));
+        dock.style.left = `${Math.round(cx)}px`;
+        dock.style.top = `${Math.round(cy)}px`;
+        dock.style.right = "auto";
+        dock.style.bottom = "auto";
+        return { left: Math.round(cx), top: Math.round(cy) };
+      }
+
+      applySavedFsDockPos = function () {
+        if (!pipFullscreen) return;
+        try {
+          const saved = JSON.parse(localStorage.getItem("tabdeck_fsdock_pos") || "null");
+          if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
+            clampAndPlace(saved.left, saved.top);
+          }
+        } catch (e) {}
+      };
+
+      // Suppress accidental button click right after a long-press drag
+      dock.addEventListener("click", (e) => {
+        if (Date.now() < suppressClickUntil) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }, true);
+
+      dock.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      dock.addEventListener("pointerdown", (e) => {
+        if (!pipFullscreen) return;
+        if (activePointerId !== null) return;
+        activePointerId = e.pointerId;
+        downX = e.clientX;
+        downY = e.clientY;
+        const rect = dock.getBoundingClientRect();
+        grabOffsetX = e.clientX - rect.left;
+        grabOffsetY = e.clientY - rect.top;
+
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(() => {
+          if (activePointerId !== e.pointerId) return;
+          isDragging = true;
+          dock.classList.add("dragging");
+          try { dock.setPointerCapture(e.pointerId); } catch (_) {}
+          try { navigator.vibrate?.(25); } catch (_) {}
+          clampAndPlace(rect.left, rect.top);
+          showToast("Drag to move menu");
+        }, 360);
+      });
+
+      dock.addEventListener("pointermove", (e) => {
+        if (e.pointerId !== activePointerId) return;
+        if (!isDragging) {
+          if (Math.hypot(e.clientX - downX, e.clientY - downY) > 12) {
+            clearTimeout(holdTimer);
+          }
+          return;
+        }
+        e.preventDefault();
+        clampAndPlace(e.clientX - grabOffsetX, e.clientY - grabOffsetY);
+      });
+
+      function endDrag(e) {
+        if (e.pointerId !== activePointerId) return;
+        clearTimeout(holdTimer);
+        if (isDragging) {
+          isDragging = false;
+          dock.classList.remove("dragging");
+          suppressClickUntil = Date.now() + 400;
+          try { dock.releasePointerCapture(e.pointerId); } catch (_) {}
+          const rect = dock.getBoundingClientRect();
+          const pos = clampAndPlace(rect.left, rect.top);
+          try { localStorage.setItem("tabdeck_fsdock_pos", JSON.stringify(pos)); } catch (_) {}
+        }
+        activePointerId = null;
+      }
+
+      dock.addEventListener("pointerup", endDrag);
+      dock.addEventListener("pointercancel", endDrag);
+      window.addEventListener("resize", () => {
+        if (pipFullscreen && dock.style.left) {
+          const rect = dock.getBoundingClientRect();
+          clampAndPlace(rect.left, rect.top);
+        }
+      });
+    })();
+
+    function togglePcAudioStream() {
+      if (isNativeApp && window.TabDeckNative.togglePcAudioStream) {
+        const active = window.TabDeckNative.togglePcAudioStream();
+        updateStreamUI(active);
+        showToast(active ? "Playing laptop audio on tablet" : "Tablet speaker stopped");
+      }
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove("show"), 1600);
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      document.getElementById("date").textContent = now.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    async function api(url, method = "GET", body = null) {
+      const opts = { method, headers: { "Content-Type": "application/json" } };
+      if (body !== null) opts.body = JSON.stringify(body);
+      const r = await fetch(url, opts);
+      return await r.json();
+    }
+
+    async function fetchState() {
+      try {
+        const data = await api("/api/state?live_lights=false");
+        failCount = 0;
+        state = data;
+        document.getElementById("connDot").classList.remove("offline");
+        document.getElementById("connLabel").textContent = isUsbMode() ? "USB" : "Wi-Fi";
+        renderAll();
+      } catch (e) {
+        failCount++;
+        document.getElementById("connDot").classList.add("offline");
+        document.getElementById("connLabel").textContent = "Reconnecting";
+        if (failCount === 2 && isNativeApp && window.TabDeckNative.failoverReconnect) {
+          window.TabDeckNative.failoverReconnect(audioActiveState, pipActive, pipFullscreen);
+        }
+      }
+    }
+
+    function renderAll() {
+      renderStats();
+      renderMedia();
+      renderAudio();
+      renderMacros();
+    }
+
+    function renderStats() {
+      const s = state.stats || {};
+      document.getElementById("cpuStat").textContent = `${s.cpu_percent ?? "--"}%`;
+      document.getElementById("ramStat").textContent = `${s.ram_percent ?? "--"}%`;
+      const bp = document.getElementById("battPill");
+      if (s.battery_percent !== null && s.battery_percent !== undefined) {
+        bp.style.display = "flex";
+        document.getElementById("battStat").textContent = `${s.battery_percent}%${s.battery_plugged ? "⚡" : ""}`;
+      }
+      const vm = state.video_mode;
+      const statusEl = document.getElementById("adaptiveStatusLine");
+      if (vm && statusEl) {
+        const modeLabels = { media: "Media HD (High Quality)", drawing: "Drawing / S-Pen (High FPS Smooth)", balanced: "Balanced Desktop", manual: "Manual Profile" };
+        statusEl.textContent = `Live: ${modeLabels[vm.mode] || vm.mode} · ${vm.width}px @ ${vm.fps} FPS (${vm.quality}% Q) [${vm.app || "Desktop"}]`;
+      }
+      renderMultiControl(state.multi_control);
+    }
+
+    function renderMedia() {
+      const m = state.media || {};
+      document.getElementById("trackTitle").textContent = m.title || "Nothing Playing";
+      document.getElementById("trackArtist").textContent = m.artist || (m.source || "Laptop media ready");
+
+      const art = document.getElementById("albumArt");
+      if (m.thumbnail) {
+        if (!art.dataset.src || art.dataset.src !== m.thumbnail.slice(0, 64)) {
+          art.dataset.src = m.thumbnail.slice(0, 64);
+          art.innerHTML = `<img src="${m.thumbnail}" alt="Art" />`;
+        }
+      } else {
+        art.dataset.src = "";
+        art.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+      }
+
+      const pp = document.getElementById("playPauseBtn");
+      pp.innerHTML = m.status === "playing"
+        ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+        : '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    }
+
+    function renderAudio() {
+      const a = state.audio || {};
+      if (!isDraggingSlider) {
+        const vol = a.master_volume ?? 50;
+        document.getElementById("masterVol").value = vol;
+        document.getElementById("masterVolVal").textContent = `${vol}%`;
+        const sum = document.getElementById("audioMiniSummary");
+        if (sum) sum.textContent = a.master_muted ? "Muted" : `${vol}%`;
+      }
+
+      const muteBtn = document.getElementById("muteBtn");
+      muteBtn.classList.toggle("danger", !!a.master_muted);
+      muteBtn.textContent = a.master_muted ? "Muted" : "Speaker On";
+
+      const micBtn = document.getElementById("micBtn");
+      micBtn.classList.toggle("danger", !!a.mic_muted);
+      micBtn.textContent = a.mic_muted ? "Mic Off" : "Mic Live";
+
+      if (!isDraggingSlider) {
+        const mixer = document.getElementById("appMixer");
+        const apps = a.apps || [];
+        if (!apps.length) {
+          mixer.innerHTML = '<div style="font-size:0.75rem;color:var(--muted);">No active audio apps</div>';
+        } else {
+          mixer.innerHTML = apps.map(app => `
+            <div class="app-row">
+              <span class="app-name ${app.muted ? "muted" : ""}" onclick="toggleAppMute('${app.name.replace(/'/g, "\\'")}')">${app.label}</span>
+              <input type="range" min="0" max="100" value="${app.volume}"
+                onpointerdown="isDraggingSlider=true" onpointerup="isDraggingSlider=false"
+                oninput="onAppVol('${app.name.replace(/'/g, "\\'")}', this.value, this.nextElementSibling)" />
+              <span class="slider-val">${app.volume}%</span>
+            </div>
+          `).join("");
+        }
+      }
+    }
+
+    function darkenHex(hex, factor = 0.58) {
+      const h = (hex || "#2563eb").replace("#", "");
+      if (h.length !== 6) return "#1d4ed8";
+      const r = Math.max(0, Math.round(parseInt(h.slice(0, 2), 16) * factor));
+      const g = Math.max(0, Math.round(parseInt(h.slice(2, 4), 16) * factor));
+      const b = Math.max(0, Math.round(parseInt(h.slice(4, 6), 16) * factor));
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function renderMacros() {
+      const grid = document.getElementById("macroGrid");
+      const card = document.getElementById("macroCard");
+      card.classList.toggle("editing", editMacros);
+      const a = state.audio || {};
+      grid.innerHTML = (state.macros || []).map(m => {
+        const isLit = (m.type === "action" && m.value === "mic_mute" && a.mic_muted)
+                   || (m.type === "action" && m.value === "vol_mute" && a.master_muted);
+        const topColor = m.color || "#2563eb";
+        const botColor = darkenHex(topColor, 0.58);
+        return `
+          <div class="macro-tile ${isLit ? "key-lit" : ""}" onclick="runMacro('${m.id}')"
+               style="--tile-top:${topColor};--tile-bot:${botColor};">
+            <button class="macro-del" onclick="event.stopPropagation(); deleteMacro('${m.id}')">&times;</button>
+            <div class="macro-icon">${ICONS[m.icon] || ICONS.zap}</div>
+            <div class="macro-label">${m.label}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function sendMedia(action) {
+      const res = await api("/api/media", "POST", { action });
+      if (res.media) { state.media = res.media; renderMedia(); }
+    }
+
+    function onMasterVolInput(val) {
+      isDraggingSlider = true;
+      document.getElementById("masterVolVal").textContent = `${val}%`;
+      clearTimeout(volTimer);
+      volTimer = setTimeout(async () => {
+        const res = await api("/api/audio/master", "POST", { volume: Number(val) });
+        isDraggingSlider = false;
+        if (res.audio) { state.audio = res.audio; renderAudio(); }
+      }, 65);
+    }
+
+    async function toggleMute() {
+      const res = await api("/api/audio/mute", "POST");
+      if (res.audio) { state.audio = res.audio; renderAudio(); }
+    }
+
+    async function toggleMic() {
+      const res = await api("/api/audio/mic-mute", "POST");
+      if (res.audio) { state.audio = res.audio; renderAudio(); }
+    }
+
+    function onAppVol(name, val, valEl) {
+      valEl.textContent = `${val}%`;
+      clearTimeout(volTimer);
+      volTimer = setTimeout(async () => {
+        const res = await api("/api/audio/app", "POST", { name, volume: Number(val) });
+        isDraggingSlider = false;
+        if (res.audio) { state.audio = res.audio; }
+      }, 75);
+    }
+
+    async function toggleAppMute(name) {
+      const res = await api("/api/audio/app", "POST", { name, toggle_mute: true });
+      if (res.audio) { state.audio = res.audio; renderAudio(); }
+    }
+
+    async function runMacro(id) {
+      if (editMacros) return;
+      try {
+        const res = await api(`/api/macros/${id}/run`, "POST");
+        if (res.message && !pipFullscreen) showToast(res.message);
+        if (res.audio) { state.audio = res.audio; renderAudio(); }
+      } catch (e) {}
+    }
+
+    function toggleEditMacros() {
+      editMacros = !editMacros;
+      document.getElementById("editMacroBtn").classList.toggle("active", editMacros);
+      renderMacros();
+    }
+
+    async function deleteMacro(id) {
+      const res = await api(`/api/macros/${id}`, "DELETE");
+      if (res.macros) { state.macros = res.macros; renderMacros(); showToast("Macro removed"); }
+    }
+
+    function openMacroModal() {
+      document.getElementById("mLabel").value = "";
+      document.getElementById("mValue").value = "";
+      document.getElementById("macroModal").classList.add("open");
+    }
+
+    async function saveNewMacro() {
+      const label = document.getElementById("mLabel").value.trim();
+      const value = document.getElementById("mValue").value.trim();
+      if (!label || !value) { showToast("Enter label and value"); return; }
+      const res = await api("/api/macros", "POST", {
+        label,
+        type: document.getElementById("mType").value,
+        color: document.getElementById("mColor").value,
+        value,
+        icon: "zap"
+      });
+      if (res.macros) { state.macros = res.macros; renderMacros(); }
+      closeModal("macroModal");
+      showToast(`Added "${label}"`);
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+    async function toggleWakeLock() {
+      const btn = document.getElementById("awakeBtn");
+      if (isNativeApp) {
+        const on = window.TabDeckNative.toggleKeepScreenOn();
+        btn.classList.toggle("active", !!on);
+        showToast(on ? "Screen will stay awake" : "Normal screen sleep");
+        return;
+      }
+      try {
+        if (wakeLock) { await wakeLock.release(); wakeLock = null; btn.classList.remove("active"); }
+        else if ("wakeLock" in navigator) { wakeLock = await navigator.wakeLock.request("screen"); btn.classList.add("active"); }
+      } catch (e) {}
+    }
+
+    function toggleDim() {
+      if (isNativeApp) {
+        const on = window.TabDeckNative.toggleDim();
+        document.body.classList.toggle("dimmed", !!on);
+        document.getElementById("dimBtn").classList.toggle("active", !!on);
+        return;
+      }
+      document.body.classList.toggle("dimmed");
+      document.getElementById("dimBtn").classList.toggle("active", document.body.classList.contains("dimmed"));
+    }
+
+    function toggleFullscreen() {
+      if (isNativeApp) {
+        const on = window.TabDeckNative.toggleImmersive();
+        document.getElementById("fullBtn").classList.toggle("active", !!on);
+        return;
+      }
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+      else document.exitFullscreen?.();
+    }
+
+    applyVisualSettings();
+    fetchState();
+    setInterval(fetchState, 2000);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("layout") === "1") {
+      openMcLayoutModal();
+    } else if (params.get("video") === "1") {
+      startPipVideo(params.get("audio") === "1", params.get("full") === "1");
+    } else if (params.get("audio") === "1" && isNativeApp && window.TabDeckNative.startPcAudioStream) {
+      updateStreamUI(window.TabDeckNative.startPcAudioStream());
+    }
+  </script>
+</body>
+</html>

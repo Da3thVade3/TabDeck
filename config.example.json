@@ -1,0 +1,28 @@
+{
+  "lights": [],
+  "macros": [
+    {"id": "mic_mute", "label": "Mic Mute", "icon": "mic", "color": "#dc2626", "type": "action", "value": "mic_mute"},
+    {"id": "vol_down", "label": "Vol -", "icon": "voldown", "color": "#0284c7", "type": "hotkey", "value": "vol_down"},
+    {"id": "vol_up", "label": "Vol +", "icon": "volup", "color": "#0284c7", "type": "hotkey", "value": "vol_up"},
+    {"id": "vol_mute", "label": "Mute PC", "icon": "mute", "color": "#e11d48", "type": "action", "value": "vol_mute"},
+    {"id": "screenshot", "label": "Snip Tool", "icon": "scissors", "color": "#2563eb", "type": "hotkey", "value": "win+shift+s"},
+
+    {"id": "rewind", "label": "Rewind", "icon": "rewind", "color": "#7c3aed", "type": "hotkey", "value": "left"},
+    {"id": "forward", "label": "Forward", "icon": "forward", "color": "#7c3aed", "type": "hotkey", "value": "right"},
+    {"id": "video_full", "label": "Video Full", "icon": "maximize", "color": "#4f46e5", "type": "hotkey", "value": "f"},
+    {"id": "captions", "label": "Subtitles", "icon": "subtitles", "color": "#9333ea", "type": "hotkey", "value": "c"},
+    {"id": "alttab", "label": "Switch App", "icon": "layers", "color": "#4338ca", "type": "hotkey", "value": "alt+tab"},
+
+    {"id": "prev_tab", "label": "Prev Tab", "icon": "arrowleft", "color": "#059669", "type": "hotkey", "value": "ctrl+shift+tab"},
+    {"id": "next_tab", "label": "Next Tab", "icon": "arrowright", "color": "#059669", "type": "hotkey", "value": "ctrl+tab"},
+    {"id": "new_tab", "label": "New Tab", "icon": "plus", "color": "#0d9488", "type": "hotkey", "value": "ctrl+t"},
+    {"id": "close_tab", "label": "Close Tab", "icon": "x", "color": "#be123c", "type": "hotkey", "value": "ctrl+w"},
+    {"id": "desktop", "label": "Desktop", "icon": "monitor", "color": "#1d4ed8", "type": "hotkey", "value": "win+d"},
+
+    {"id": "copy", "label": "Copy", "icon": "copy", "color": "#334155", "type": "hotkey", "value": "ctrl+c"},
+    {"id": "paste", "label": "Paste", "icon": "clipboard", "color": "#334155", "type": "hotkey", "value": "ctrl+v"},
+    {"id": "undo", "label": "Undo", "icon": "undo", "color": "#d97706", "type": "hotkey", "value": "ctrl+z"},
+    {"id": "taskmgr", "label": "Task Mgr", "icon": "activity", "color": "#ea580c", "type": "hotkey", "value": "ctrl+shift+esc"},
+    {"id": "lock", "label": "Lock PC", "icon": "lock", "color": "#3f3f46", "type": "action", "value": "lock"}
+  ]
+}

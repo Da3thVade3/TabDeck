@@ -1,0 +1,12 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+psutil>=6.0.0
+pycaw>=20240210
+comtypes>=1.4.0
+winrt-runtime>=3.0.0
+winrt-Windows.Media.Control>=3.0.0
+winrt-Windows.Storage.Streams>=3.0.0
+PyAudioWPatch>=0.2.12.6
+mss>=9.0.1
+Pillow>=10.4.0
+pystray>=0.19.5

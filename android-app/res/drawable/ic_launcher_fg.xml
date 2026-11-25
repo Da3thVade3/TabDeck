@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Top-left Cyan Tile (Media) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M28,28 L50,28 C52.2,28 54,29.8 54,32 L54,50 C54,52.2 52.2,54 50,54 L28,54 C25.8,54 24,52.2 24,50 L24,32 C24,29.8 25.8,28 28,28 Z" />
+    <!-- Top-right Indigo Tile (Lights) -->
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M62,28 L80,28 C82.2,28 84,29.8 84,32 L84,50 C84,52.2 82.2,54 80,54 L62,54 C59.8,54 58,52.2 58,50 L58,32 C58,29.8 59.8,28 62,28 Z" />
+    <!-- Bottom-left Emerald Tile (Audio) -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M28,60 L46,60 C48.2,60 50,61.8 50,64 L50,78 C50,80.2 48.2,82 46,82 L28,82 C25.8,82 24,80.2 24,78 L24,64 C24,61.8 25.8,60 28,60 Z" />
+    <!-- Bottom-right Amber Wide Tile (Macropad) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M58,60 L80,60 C82.2,60 84,61.8 84,64 L84,78 C84,80.2 82.2,82 80,82 L58,82 C55.8,82 54,80.2 54,78 L54,64 C54,61.8 55.8,60 58,60 Z" />
+    <!-- Play glyph in top-left -->
+    <path
+        android:fillColor="#0B1120"
+        android:pathData="M36,35 L45,41 L36,47 Z" />
+    <!-- Bulb circle in top-right -->
+    <path
+        android:fillColor="#0B1120"
+        android:pathData="M71,35 A6,6 0 1,0 71,47 A6,6 0 1,0 71,35 Z" />
+</vector>
