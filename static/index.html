@@ -431,6 +431,56 @@
     .mouse-kb-toggle { display: none; }
     .touchpad-card.mouse-full .mouse-kb-toggle { display: inline-flex; }
 
+    /* Tablet Landscape: Trackpad Left + Floating Keyboard Panel Docked on Right Side */
+    .mouse-pad-pane {
+      display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px;
+    }
+    .float-qwerty { display: none; flex-direction: column; gap: 6px; margin-top: 2px; }
+    .fq-row { display: flex; gap: 5px; width: 100%; }
+    .fq-key {
+      flex: 1;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation;
+    }
+    .fq-key:active { transform: scale(0.93); background: rgba(56, 189, 248, 0.35); }
+    .fq-key.mod { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; font-size: 0.78rem; flex: 1.35; }
+    .fq-key.mod.lit { background: rgba(56, 189, 248, 0.42); border-color: #38bdf8; color: #fff; }
+    .fq-key.space { flex: 4.2; font-size: 0.78rem; color: var(--muted); }
+    .fq-key.enter { flex: 1.65; background: rgba(56, 189, 248, 0.32); border-color: rgba(56, 189, 248, 0.65); color: #e0f2fe; font-size: 0.82rem; }
+
+    @media (min-width: 761px) and (orientation: landscape) {
+      .touchpad-card.mouse-full .card-body {
+        flex-direction: row !important;
+        align-items: stretch !important;
+        gap: 14px !important;
+      }
+      .touchpad-card.mouse-full .mouse-pad-pane {
+        flex: 1.08 !important;
+        min-width: 0;
+      }
+      .touchpad-card.mouse-full .mouse-kb-dock {
+        flex: 0.92 !important;
+        max-width: 560px;
+        align-self: center;
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(56, 189, 248, 0.36);
+        border-radius: 20px;
+        padding: 12px;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        gap: 8px;
+      }
+      .touchpad-card.mouse-full .float-qwerty { display: flex; }
+      .touchpad-card.mouse-full.sys-kb-open .float-qwerty { display: none; }
+    }
+
     /* Elgato Stream Deck Mobile App Style */
     .macro-card { flex: 1; background: #0a0b0f; border: 1px solid rgba(255, 255, 255, 0.07); min-height: 0; }
     .macro-grid {
@@ -1009,15 +1059,17 @@
           </div>
 
           <div class="card-body">
-            <div class="touchpad-surface" id="touchpad">
-              <span class="touchpad-hint">1-finger move &amp; tap · 2-finger scroll &amp; right-click</span>
-            </div>
-            <div class="mouse-btns">
-              <button class="mouse-btn" id="lClickBtn">Left Click</button>
-              <button class="mouse-btn" id="rClickBtn">Right Click</button>
+            <div class="mouse-pad-pane">
+              <div class="touchpad-surface" id="touchpad">
+                <span class="touchpad-hint">1-finger move &amp; tap · 2-finger scroll &amp; right-click</span>
+              </div>
+              <div class="mouse-btns">
+                <button class="mouse-btn" id="lClickBtn">Left Click</button>
+                <button class="mouse-btn" id="rClickBtn">Right Click</button>
+              </div>
             </div>
 
-            <!-- Living-Room Keyboard Dock (auto-opens default Android keyboard above bottom half) -->
+            <!-- Living-Room Keyboard Dock (Phone: bottom default KB · Tablet: floating right-side KB) -->
             <div class="mouse-kb-dock" id="mouseKbDock">
               <div class="fs-key-row">
                 <button class="fs-kbtn" onpointerdown="event.preventDefault()" onclick="sendPcKey('esc')">Esc</button>
@@ -1036,7 +1088,8 @@
               </div>
               <input id="mouseTypeInput" class="fs-type-input" style="height:36px;font-size:0.86rem;" type="text"
                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                placeholder="Type here with your default keyboard → sends live to PC..." />
+                placeholder="Type with Gboard / default keyboard → sends live to PC..." />
+              <div class="float-qwerty" id="floatQwerty"></div>
             </div>
           </div>
         </div>
@@ -2127,15 +2180,22 @@
       }
     }
 
+    function isLandscapeTablet() {
+      return window.innerWidth >= 761 && window.innerWidth > window.innerHeight;
+    }
+
     function toggleMouseKeyboard() {
+      const card = document.getElementById("cardMouse");
       const inp = document.getElementById("mouseTypeInput");
       const btn = document.getElementById("mouseKbBtn");
       if (!inp) return;
       if (document.activeElement === inp) {
         inp.blur();
+        card?.classList.remove("sys-kb-open");
         btn?.classList.remove("active");
       } else {
         inp.value = KB_SENTINEL;
+        card?.classList.add("sys-kb-open");
         inp.focus();
         try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_) {}
         btn?.classList.add("active");
@@ -2157,7 +2217,11 @@
       }
       if (full) {
         syncMouseFullViewport();
-        if (inp) {
+        renderFloatingQwerty();
+        if (kbBtn) kbBtn.innerHTML = isLandscapeTablet() ? "&#9000; System KB" : "&#9000; KB";
+        // On phones/portrait: auto-pop default Android keyboard at bottom.
+        // On landscape tablets: show crisp floating QWERTY on right side (tap System KB anytime for Gboard).
+        if (!isLandscapeTablet() && inp) {
           inp.value = KB_SENTINEL;
           setTimeout(() => {
             inp.focus();
@@ -2168,11 +2232,76 @@
         }
       } else {
         if (inp) inp.blur();
+        card.classList.remove("sys-kb-open");
         kbBtn?.classList.remove("active");
         syncMouseFullViewport();
       }
       if (isNativeApp && window.TabDeckNative.setVideoFullscreen) {
         window.TabDeckNative.setVideoFullscreen(full || pipFullscreen);
+      }
+    }
+
+    // Floating Right-Side QWERTY PC Keyboard for Expanded Tablet Trackpad Mode
+    const fqState = { shift: false, ctrl: false, alt: false, sym: false };
+    function renderFloatingQwerty() {
+      const host = document.getElementById("floatQwerty");
+      if (!host) return;
+      const numRow = fqState.sym
+        ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "BKSP"]
+        : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "BKSP"];
+      const row1 = fqState.sym
+        ? ["-", "_", "=", "+", "[", "]", "{", "}", "\\", "|"]
+        : ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
+      const row2 = fqState.sym
+        ? [";", ":", "'", '"', ",", ".", "<", ">", "/", "?"]
+        : ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ENTER"];
+      const row3 = fqState.sym
+        ? ["ABC", "~", "`", "£", "€", "←", "↑", "↓", "→", "ENTER"]
+        : ["SHIFT", "z", "x", "c", "v", "b", "n", "m", ",", ".", "?"];
+      const row4 = [fqState.sym ? "ABC" : "?123", "CTRL", "WIN", "ALT", "SPACE", "←", "→"];
+
+      const rows = [numRow, row1, row2, row3, row4];
+      host.innerHTML = rows.map(row => `<div class="fq-row">${row.map(k => {
+        let cls = "fq-key";
+        let label = k;
+        if (k === "BKSP") { cls += " mod"; label = "⌫"; }
+        else if (k === "ENTER") { cls += " enter"; label = "↵"; }
+        else if (k === "SHIFT") { cls += " mod" + (fqState.shift ? " lit" : ""); label = "⇧"; }
+        else if (k === "CTRL") { cls += " mod" + (fqState.ctrl ? " lit" : ""); label = "Ctrl"; }
+        else if (k === "ALT") { cls += " mod" + (fqState.alt ? " lit" : ""); label = "Alt"; }
+        else if (k === "WIN") { cls += " mod"; label = "Win"; }
+        else if (k === "?123" || k === "ABC") { cls += " mod" + (fqState.sym ? " lit" : ""); }
+        else if (k === "SPACE") { cls += " space"; label = "Space"; }
+        else if (k.length === 1 && fqState.shift && !fqState.sym) { label = k.toUpperCase(); }
+        const enc = encodeURIComponent(k);
+        return `<button class="${cls}" onpointerdown="event.preventDefault(); onFqKey(decodeURIComponent('${enc}'))">${label.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</button>`;
+      }).join("")}</div>`).join("");
+    }
+
+    function onFqKey(k) {
+      if (k === "SHIFT") { fqState.shift = !fqState.shift; renderFloatingQwerty(); return; }
+      if (k === "CTRL") { fqState.ctrl = !fqState.ctrl; renderFloatingQwerty(); return; }
+      if (k === "ALT") { fqState.alt = !fqState.alt; renderFloatingQwerty(); return; }
+      if (k === "?123" || k === "ABC") { fqState.sym = !fqState.sym; renderFloatingQwerty(); return; }
+
+      if (k === "BKSP") { sendInput({ t: "key", k: "backspace", ctrl: fqState.ctrl }); }
+      else if (k === "ENTER") { sendInput({ t: "key", k: "enter", ctrl: fqState.ctrl, shift: fqState.shift }); }
+      else if (k === "SPACE") { sendInput({ t: "text", s: " " }); }
+      else if (k === "WIN") { sendInput({ t: "key", k: "win" }); }
+      else if (k === "←") { sendInput({ t: "key", k: "left", ctrl: fqState.ctrl, shift: fqState.shift }); }
+      else if (k === "→") { sendInput({ t: "key", k: "right", ctrl: fqState.ctrl, shift: fqState.shift }); }
+      else if (k === "↑") { sendInput({ t: "key", k: "up", ctrl: fqState.ctrl, shift: fqState.shift }); }
+      else if (k === "↓") { sendInput({ t: "key", k: "down", ctrl: fqState.ctrl, shift: fqState.shift }); }
+      else if (fqState.ctrl || fqState.alt) {
+        sendInput({ t: "key", k: k.toLowerCase(), ctrl: fqState.ctrl, alt: fqState.alt, shift: fqState.shift });
+      } else {
+        const ch = (fqState.shift && !fqState.sym && k.length === 1) ? k.toUpperCase() : k;
+        sendInput({ t: "text", s: ch });
+      }
+
+      if (fqState.shift || fqState.ctrl || fqState.alt) {
+        fqState.shift = false; fqState.ctrl = false; fqState.alt = false;
+        renderFloatingQwerty();
       }
     }
 
