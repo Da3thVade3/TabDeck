@@ -393,6 +393,38 @@
     }
     .mouse-btn:active { background: rgba(56,189,248,0.25); color: #fff; transform: scale(0.97); }
 
+    /* Fullscreen Expanded Magic-Trackpad Mode (Phone & Tablet) */
+    .touchpad-card.mouse-full {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      min-height: 100dvh !important;
+      max-height: 100dvh !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      padding: max(12px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom)) !important;
+      background: #080b12 !important;
+      z-index: 2100 !important;
+      gap: 10px !important;
+    }
+    .touchpad-card.mouse-full .card-body {
+      display: flex !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      gap: 12px !important;
+    }
+    .touchpad-card.mouse-full .touchpad-surface {
+      flex: 1 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      border-radius: 18px !important;
+      background-size: 20px 20px, 100% 100%;
+    }
+    .touchpad-card.mouse-full .mouse-btns { gap: 10px; }
+    .touchpad-card.mouse-full .mouse-btn { height: 54px; font-size: 0.92rem; border-radius: 14px; }
+
     /* Elgato Stream Deck Mobile App Style */
     .macro-card { flex: 1; background: #0a0b0f; border: 1px solid rgba(255, 255, 255, 0.07); min-height: 0; }
     .macro-grid {
@@ -715,10 +747,10 @@
         border-radius: 16px;
       }
 
-      /* Comfortable Full-Width Mouse Pad on Phones */
+      /* Generously Sized Full-Width Mouse Pad on Phones */
       .touchpad-card { flex: none; min-height: auto; }
-      .touchpad-surface { min-height: 145px; }
-      .mouse-btn { height: 38px; font-size: 0.8rem; }
+      .touchpad-surface { min-height: 250px; height: 34dvh; }
+      .mouse-btn { height: 42px; font-size: 0.84rem; }
 
       /* Crisp Stream Deck Tile Grid Sized for Phones */
       .macro-card { flex: none; }
@@ -963,7 +995,10 @@
               <span class="chev">&#9662;</span>
               <span class="card-title">Mouse Pad</span>
             </div>
-            <span id="wsBadge" style="font-size:0.7rem;color:var(--muted);">Ready</span>
+            <div style="display:flex;align-items:center;gap:8px;" onclick="event.stopPropagation()">
+              <span id="wsBadge" style="font-size:0.7rem;color:var(--muted);">Ready</span>
+              <button class="icon-btn" id="mouseExpandBtn" style="padding:4px 9px;font-size:0.74rem;" onclick="toggleMouseFullscreen()">&#x26F6; Expand</button>
+            </div>
           </div>
 
           <div class="card-body">
@@ -2048,7 +2083,27 @@
       }
     }
 
+    function toggleMouseFullscreen() {
+      const card = document.getElementById("cardMouse");
+      const btn = document.getElementById("mouseExpandBtn");
+      if (!card) return;
+      card.classList.remove("collapsed");
+      const full = card.classList.toggle("mouse-full");
+      if (btn) {
+        btn.classList.toggle("active", full);
+        btn.innerHTML = full ? "&times; Exit" : "&#x26F6; Expand";
+      }
+      if (isNativeApp && window.TabDeckNative.setVideoFullscreen) {
+        window.TabDeckNative.setVideoFullscreen(full || pipFullscreen);
+      }
+    }
+
     function exitVideoFullscreen() {
+      const mouseCard = document.getElementById("cardMouse");
+      if (mouseCard && mouseCard.classList.contains("mouse-full")) {
+        toggleMouseFullscreen();
+        return;
+      }
       closeFsKeyboard();
       pipFullscreen = false;
       document.getElementById("pipBox").classList.remove("fullscreen");
