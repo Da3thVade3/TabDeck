@@ -35,6 +35,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -501,7 +502,8 @@ public class MainActivity extends Activity {
         box.addView(offlineStatus, sp);
 
         LinearLayout btnRow = new LinearLayout(this);
-        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+        boolean isNarrow = getResources().getDisplayMetrics().widthPixels < dp(500);
+        btnRow.setOrientation(isNarrow ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER);
 
         Button retryBtn = new Button(this);
@@ -529,11 +531,14 @@ public class MainActivity extends Activity {
         guideBtn.setOnClickListener(v -> showIntroOverlay());
 
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        bp.rightMargin = dp(12);
+                isNarrow ? dp(220) : ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        if (isNarrow) bp.bottomMargin = dp(10);
+        else bp.rightMargin = dp(12);
         btnRow.addView(retryBtn, bp);
         btnRow.addView(cfgBtn, bp);
-        btnRow.addView(guideBtn);
+        LinearLayout.LayoutParams lastBp = new LinearLayout.LayoutParams(
+                isNarrow ? dp(220) : ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        btnRow.addView(guideBtn, lastBp);
 
         box.addView(btnRow);
         return box;
@@ -544,24 +549,30 @@ public class MainActivity extends Activity {
         backdrop.setBackgroundColor(Color.parseColor("#EC070B14"));
         backdrop.setClickable(true);
 
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        boolean compact = screenW < dp(500);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(26);
+        int pad = dp(compact ? 18 : 26);
         card.setPadding(pad, pad, pad, pad);
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(Color.parseColor("#111827"));
-        bg.setCornerRadius(dp(20));
+        bg.setCornerRadius(dp(18));
         bg.setStroke(dp(1), Color.parseColor("#38BDF8"));
         card.setBackground(bg);
 
         introStepBadge = new TextView(this);
-        introStepBadge.setTextSize(12);
+        introStepBadge.setTextSize(11);
         introStepBadge.setTypeface(Typeface.DEFAULT_BOLD);
         introStepBadge.setTextColor(Color.parseColor("#38BDF8"));
         card.addView(introStepBadge);
 
         introTitle = new TextView(this);
-        introTitle.setTextSize(24);
+        introTitle.setTextSize(compact ? 20 : 24);
         introTitle.setTypeface(Typeface.DEFAULT_BOLD);
         introTitle.setTextColor(Color.parseColor("#F8FAFC"));
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(
@@ -570,13 +581,13 @@ public class MainActivity extends Activity {
         card.addView(introTitle, tp);
 
         introBody = new TextView(this);
-        introBody.setTextSize(15);
+        introBody.setTextSize(compact ? 13.5f : 15f);
         introBody.setLineSpacing(dp(4), 1.0f);
         introBody.setTextColor(Color.parseColor("#CBD5E1"));
         LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        bodyLp.topMargin = dp(14);
-        bodyLp.bottomMargin = dp(22);
+        bodyLp.topMargin = dp(12);
+        bodyLp.bottomMargin = dp(18);
         card.addView(introBody, bodyLp);
 
         LinearLayout nav = new LinearLayout(this);
@@ -588,6 +599,8 @@ public class MainActivity extends Activity {
         skipBtn.setAllCaps(false);
         skipBtn.setTextColor(Color.parseColor("#94A3B8"));
         skipBtn.setBackgroundColor(Color.TRANSPARENT);
+        skipBtn.setMinimumWidth(0);
+        skipBtn.setPadding(dp(10), dp(8), dp(10), dp(8));
         skipBtn.setOnClickListener(v -> finishIntro());
 
         introBackBtn = new Button(this);
@@ -595,7 +608,8 @@ public class MainActivity extends Activity {
         introBackBtn.setAllCaps(false);
         introBackBtn.setTextColor(Color.parseColor("#E2E8F0"));
         introBackBtn.setBackgroundColor(Color.parseColor("#1E293B"));
-        introBackBtn.setPadding(dp(18), dp(10), dp(18), dp(10));
+        introBackBtn.setMinimumWidth(0);
+        introBackBtn.setPadding(dp(14), dp(8), dp(14), dp(8));
         introBackBtn.setOnClickListener(v -> {
             if (introStep > 0) { introStep--; renderIntroStep(); }
         });
@@ -605,7 +619,8 @@ public class MainActivity extends Activity {
         introNextBtn.setAllCaps(false);
         introNextBtn.setTextColor(Color.WHITE);
         introNextBtn.setBackgroundColor(Color.parseColor("#0284C7"));
-        introNextBtn.setPadding(dp(22), dp(10), dp(22), dp(10));
+        introNextBtn.setMinimumWidth(0);
+        introNextBtn.setPadding(dp(16), dp(8), dp(16), dp(8));
         introNextBtn.setOnClickListener(v -> {
             if (introStep < 2) { introStep++; renderIntroStep(); }
             else finishIntro();
@@ -613,16 +628,20 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams navSpace = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        navSpace.rightMargin = dp(10);
+        navSpace.rightMargin = dp(8);
         nav.addView(skipBtn, navSpace);
         nav.addView(introBackBtn, navSpace);
         nav.addView(introNextBtn);
         card.addView(nav);
 
+        scroll.addView(card, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        int cardWidth = Math.min(dp(520), Math.max(dp(280), screenW - dp(28)));
         FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(
-                dp(520), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
-        cardLp.setMargins(dp(20), dp(20), dp(20), dp(20));
-        backdrop.addView(card, cardLp);
+                cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        cardLp.setMargins(dp(14), dp(16), dp(14), dp(16));
+        backdrop.addView(scroll, cardLp);
         return backdrop;
     }
 
