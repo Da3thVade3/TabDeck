@@ -79,10 +79,11 @@ public class MainActivity extends Activity {
     private volatile boolean isActivityActive = false;
     private volatile boolean isConnected = false;
 
-    private boolean keepAwake = true;
+    private boolean keepAwake = false;
     private boolean dimmed = false;
     private boolean immersive = true;
     private boolean videoFullscreen = false;
+    private int retryDelayMs = 2500;
     private String currentUrl = USB_URL;
     private long lastBackPress = 0L;
 
@@ -96,7 +97,8 @@ public class MainActivity extends Activity {
         public void run() {
             if (isActivityActive && !isConnected) {
                 probeAndConnect(false, false, false, false);
-                mainHandler.postDelayed(this, 2500);
+                retryDelayMs = Math.min(15000, retryDelayMs * 2);
+                mainHandler.postDelayed(this, retryDelayMs);
             }
         }
     };
@@ -106,7 +108,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        keepAwake = prefs.getBoolean(KEY_KEEP_AWAKE, true);
+        keepAwake = prefs.getBoolean(KEY_KEEP_AWAKE, false);
         isDebugBuild = (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
         WebView.setWebContentsDebuggingEnabled(isDebugBuild);
         applyKeepAwake();
@@ -195,7 +197,12 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         isActivityActive = true;
+        if (webView != null) {
+            webView.onResume();
+            webView.resumeTimers();
+        }
         if (!isConnected) {
+            retryDelayMs = 2500;
             probeAndConnect(false, false, false, false);
             scheduleAutoRetry();
         }
@@ -205,6 +212,12 @@ public class MainActivity extends Activity {
     protected void onPause() {
         isActivityActive = false;
         mainHandler.removeCallbacks(autoRetryRunnable);
+        if (webView != null) {
+            webView.onPause();
+            if (!audioStreaming) {
+                webView.pauseTimers();
+            }
+        }
         super.onPause();
     }
 
@@ -217,7 +230,7 @@ public class MainActivity extends Activity {
 
     private void scheduleAutoRetry() {
         mainHandler.removeCallbacks(autoRetryRunnable);
-        mainHandler.postDelayed(autoRetryRunnable, 2500);
+        mainHandler.postDelayed(autoRetryRunnable, retryDelayMs);
     }
 
     // -----------------------------------------------------------------------
@@ -724,7 +737,7 @@ public class MainActivity extends Activity {
 
     private void applyKeepAwake() {
         runOnUiThread(() -> {
-            if (keepAwake) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            if (keepAwake || videoFullscreen) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         });
     }
@@ -852,7 +865,10 @@ public class MainActivity extends Activity {
         public boolean startPcAudioStream() { return startAudioStream(); }
 
         @JavascriptInterface
-        public void setVideoFullscreen(boolean fs) { videoFullscreen = fs; }
+        public void setVideoFullscreen(boolean fs) {
+            videoFullscreen = fs;
+            applyKeepAwake();
+        }
 
         @JavascriptInterface
         public void failoverReconnect(boolean resumeAudio, boolean resumeVideo, boolean resumeFull) {

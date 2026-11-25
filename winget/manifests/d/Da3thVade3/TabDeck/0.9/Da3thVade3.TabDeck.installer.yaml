@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+﻿# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 PackageIdentifier: Da3thVade3.TabDeck
 PackageVersion: "0.9"
 InstallerType: zip
@@ -9,6 +9,6 @@ NestedInstallerFiles:
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/Da3thVade3/TabDeck/releases/download/v0.9/TabDeck-Windows-v0.9.zip
-    InstallerSha256: E66506FBB2FAD0F748CDD8F69F2E82DA2D2F589690086A5FF14C1A318BA8599F
+    InstallerSha256: B0412554AAF2CCA3C8B79A08D90EE220418F91A520C984EE92806FC3F3C936A5
 ManifestType: installer
 ManifestVersion: 1.6.0

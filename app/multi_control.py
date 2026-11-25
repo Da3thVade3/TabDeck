@@ -387,9 +387,13 @@ class MultiControlManager:
 
     def update_layout(self, enabled: bool | None = None, devices: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         if enabled is not None:
-            self.enabled = bool(enabled)
-            if not self.enabled and self.active_device_id:
-                self.leave_device()
+            new_enabled = bool(enabled)
+            if new_enabled != self.enabled:
+                self.enabled = new_enabled
+                if not self.enabled:
+                    self._stop_hooks_and_conns()
+                else:
+                    self._start_hooks_if_needed()
 
         if devices is not None:
             new_list = []
@@ -926,26 +930,11 @@ class MultiControlManager:
             self._send_to_device(self.active_device_id, _pack_ev(EV_KEY, linux_code, val) + _pack_ev(EV_SYN, 0, 0))
         return 1
 
-    def start(self) -> None:
+    def _start_hooks_if_needed(self) -> None:
         if self._thread and self._thread.is_alive():
             return
-        self._stop_ev.clear()
-
-        def _conn_loop():
-            while not self._stop_ev.is_set():
-                if self.enabled:
-                    with self._lock:
-                        devs_snapshot = [dict(d) for d in self.devices if d.get("enabled")]
-                    for d in devs_snapshot:
-                        with self._lock:
-                            c = self._conns.setdefault(d["id"], _DeviceConn())
-                            has_sock = c.sock is not None
-                        if not has_sock:
-                            self._connect_device(d)
-                self._stop_ev.wait(2.5)
-
-        self._conn_thread = threading.Thread(target=_conn_loop, name="tabdeck-mc-conn", daemon=True)
-        self._conn_thread.start()
+        if not self.enabled:
+            return
 
         def _hook_loop():
             self._thread_id = kernel32.GetCurrentThreadId()
@@ -965,15 +954,12 @@ class MultiControlManager:
             if self._kbd_hook:
                 user32.UnhookWindowsHookEx(self._kbd_hook)
                 self._kbd_hook = None
-            with self._lock:
-                for did in list(self._conns.keys()):
-                    self._close_device_conn_unlocked(did)
+            self._thread_id = 0
 
         self._thread = threading.Thread(target=_hook_loop, name="tabdeck-multicontrol", daemon=True)
         self._thread.start()
 
-    def stop(self) -> None:
-        self._stop_ev.set()
+    def _stop_hooks_and_conns(self) -> None:
         if self.active_device_id:
             self.leave_device()
         if self._thread_id:
@@ -981,6 +967,48 @@ class MultiControlManager:
         with self._lock:
             for did in list(self._conns.keys()):
                 self._close_device_conn_unlocked(did)
+
+    def start(self) -> None:
+        self._stop_ev.clear()
+        if not (self._conn_thread and self._conn_thread.is_alive()):
+            fail_counts: dict[str, int] = {}
+            next_try: dict[str, float] = {}
+
+            def _conn_loop():
+                while not self._stop_ev.is_set():
+                    now = time.monotonic()
+                    if self.enabled:
+                        with self._lock:
+                            devs_snapshot = [dict(d) for d in self.devices if d.get("enabled")]
+                        for d in devs_snapshot:
+                            did = d["id"]
+                            with self._lock:
+                                c = self._conns.setdefault(did, _DeviceConn())
+                                has_sock = c.sock is not None
+                            if has_sock:
+                                fail_counts[did] = 0
+                                continue
+                            if now < next_try.get(did, 0.0):
+                                continue
+                            if self._connect_device(d):
+                                fail_counts[did] = 0
+                            else:
+                                fc = fail_counts.get(did, 0) + 1
+                                fail_counts[did] = fc
+                                # Back off 3s -> 8s -> 20s so sleeping phones/tablets aren't woken
+                                backoff = 3.0 if fc == 1 else (8.0 if fc == 2 else 20.0)
+                                next_try[did] = time.monotonic() + backoff
+                    self._stop_ev.wait(2.5)
+
+            self._conn_thread = threading.Thread(target=_conn_loop, name="tabdeck-mc-conn", daemon=True)
+            self._conn_thread.start()
+
+        if self.enabled:
+            self._start_hooks_if_needed()
+
+    def stop(self) -> None:
+        self._stop_ev.set()
+        self._stop_hooks_and_conns()
 
 
 manager = MultiControlManager()
